@@ -25,7 +25,7 @@ function getCorrelationId() {
 // Modify the logger format to include correlation ID
 const myFormat = printf(({ level, message, timestamp, ...metadata }) => {
     let correlationId = getCorrelationId(); // Get the current correlation ID
-    let msg = `${timestamp} [${level}] [${correlationId}] : ${message} `;
+    let msg = `${timestamp}|${level}|${correlationId}| : ${message} `;
 
     if (metadata) {
         if (typeof metadata !== 'string') {
