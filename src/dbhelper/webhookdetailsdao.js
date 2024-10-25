@@ -1,5 +1,5 @@
 const { createMongoAndFilterForColumns, modifyMongoQuery } = require("./mongohelpers");
-const WebhookDetailsDo = require('../models/webhookDetails');
+const WebhookDetailsDo = require('../models/webhookdetails');
 
 const FILTER_COLUMNS = ['automation_id', 'pronnel_webhook_url', 'connection_id', '_id', 'trigger_type'];
 const RANGE_COLUMNS = ['create_date'];
