@@ -1,6 +1,7 @@
 const { ConnectionFilter } = require('../filters/connectionfilter');
 const axios = require('axios');
-const { getSavedConnection } = require('../dbhelper/connectiondao')
+const { getSavedConnection } = require('../dbhelper/connectiondao');
+const { logger } = require('../config/logger');
 
 const verifySignature = async function (secret, header, payload) {
     let encoder = new TextEncoder();
@@ -61,7 +62,7 @@ const fetchAccessToken = async function (data) {
         return accessToken;
     }
     catch (err) {
-        console.log(err);
+        logger.error('Error encountered in fetchAccessToken(). Error is : ', err);
         throw err;
     }
 }

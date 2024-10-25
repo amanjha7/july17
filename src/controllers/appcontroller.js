@@ -1,6 +1,6 @@
 const { validateAndRefreshAccessToken, processSubscription, processWebhook, createNewConnection, processUnsubscription, processWebhookSample, updateConnectionDetails, initiateAuthFlow, getAccessToken, revokeToken, checkAccessTokenStatus } = require('../services/appservice');
 const jwt = require('jsonwebtoken');
-const logger = require('../config/logger');
+const {logger} = require('../config/logger');
 
 //Initiate auth flow
 const handleAuthInitiation = async (req, res) => {

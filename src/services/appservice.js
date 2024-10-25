@@ -9,7 +9,7 @@ const { saveConnection, getSavedConnection, updateConnection, deleteConnection }
 const { updateWebhookDetails, getSavedWebhookDetails, deleteWebhookDetails } = require('../dbhelper/webhookdetailsdao');
 const { createGitHubApiHeader } = require('../utils/apputils');
 const { fetchAccessToken } = require('../utils/apputils');
-const logger = require('../config/logger'); 
+const {logger} = require('../config/logger'); 
 
 const initiateAuthFlow = async (context) => {
   logger.info('Entering initiateAuthFlow(). Context received is : ', context);
@@ -158,7 +158,6 @@ const createNewConnection = async (data) => {
   catch (err) {
     logger.error('Error encountered in createNewConnection(). Error is : ', err);
     logger.error('Leaving createNewConnection() from catch block');
-    console.log(err)
     throw err;
   }
 };
@@ -465,7 +464,6 @@ const processWebhook = async (payload, event) => {
   }
   catch (err) {
     logger.error('Error encountered in processWebhook(). Error is : ', err);
-    console.log(err)
     throw err;
   }
 };
@@ -517,7 +515,7 @@ function determineTriggerType(event, payload) {
         triggerType = TRIGGER_NAME.COMMIT_CREATED;
       }
     default:
-      console.log(`Unhandled event: ${event}`);
+      logger.info(`Unhandled event: ${event}`);
   }
   return triggerType;
 }
