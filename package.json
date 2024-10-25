@@ -5,7 +5,9 @@
   "main": "dist/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "build": "tsc"
+    "build": "tsc",
+    "devenvironment": "export NODE_ENV=dev && pm2 start index.ts -i 1 --node-args=--max_old_space_size=3000  && pm2 logs",
+    "prodenvironment": "export NODE_ENV=prod && pm2 start index.ts -i 1 --node-args=--max_old_space_size=3000  && pm2 logs"
   },
   "author": "Mohit Bansal",
   "license": "MIT",
