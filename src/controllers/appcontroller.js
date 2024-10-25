@@ -21,7 +21,7 @@ const handleAuthInitiation = async (req, res) => {
     }
   }
   catch (err) {
-    logger.error('Error encountered in handleAuthInitiation function', err.message);
+    logger.error('Error encountered in handleAuthInitiation function', err);
     logger.info('Leaving handleAuthInitiation from catch block');
     res.status(500).send('Auth handling failed due to some error.');
   }
@@ -43,7 +43,7 @@ const handleCallback = async (req, res) => {
     logger.info('Leaving handleCallback(). Redirecting with success status to', returnUrl);
     res.redirect(returnUrl);
   } catch (error) {
-    logger.error('Error encountered in handleCallback(). Error exchanging authorization code for token:', error.message);
+    logger.error('Error encountered in handleCallback(). Error exchanging authorization code for token:', error);
     let returnUrl = context.return_url + '?success=false';
     logger.info('Leaving handleCallback() from catch block. Redirecting with false status to ', returnUrl);
     res.redirect(returnUrl);
@@ -57,7 +57,7 @@ const revokeAccessToken = async (req, res) => {
     logger.info("Leaving revokeAccessToken() with success status.");
     res.status(200).send({ "status": "success" });
   } catch (error) {
-    console.error('Error encountered in revokeAccessToken(). Error is : ', error.message);
+    console.error('Error encountered in revokeAccessToken(). Error is : ', error);
     console.info('Leaving revokeAccessToken() from catch block with failure status.')
     res.status(500).send({ "status": "failure" });
   }
@@ -73,7 +73,7 @@ const handleSubscription = async (req, res) => {
     res.status(200).send('Subscription added successfully.');
   }
   catch (err) {
-    logger.error('Error encounterd in handleSubscription(). Error is : ', err.message);
+    logger.error('Error encounterd in handleSubscription(). Error is : ', err);
     logger.info('Leaving handleSubscription() from catch block after unsuccessful subscription.');
     res.status(500).send('Subscription failed due to some error.');
   }
@@ -89,7 +89,7 @@ const handleUnsubscription = async (req, res) => {
     res.status(200).send('Subscription removed successfully.');
   }
   catch (err) {
-    logger.error('Error encountered in handleUnsubscription(). Error is : ', err.message);
+    logger.error('Error encountered in handleUnsubscription(). Error is : ', err);
     logger.info('Leaving handleUnsubscription() from catch block after unsuccessful unsubscription.');
     res.status(500).send('Unsubscription failed due to some error.');
   }
@@ -118,7 +118,7 @@ const updateConnection = async (req, res) => {
     res.status(200).json({ message: 'Connection details saved.', connection_id: id });
   }
   catch (err) {
-    logger.error('Error encountered in updateConnection(). Error is : ', err.message);
+    logger.error('Error encountered in updateConnection(). Error is : ', err);
     logger.info('Leaving updateConnection() from catch block. Connection creation failed.');
     res.status(500).json({ message: 'Connection creation failed due to some error.' });
   }
@@ -133,7 +133,7 @@ const sendWebhookSample = async (req, res) => {
     return res.status(200).json(result);
   }
   catch (err) {
-    logger.error('Error encountered in sendWebhookSample(). Error is : ', err.message);
+    logger.error('Error encountered in sendWebhookSample(). Error is : ', err);
     logger.info('Leaving sendWebhookSample() from catch block. Webhook invocation failed.');
     res.status(500).send('Webhook invocation failed due to some error.');
   }
@@ -147,7 +147,7 @@ const checkConnectionValidity = async (req, res) => {
     return res.status(200).json(result);
   }
   catch (err) {
-    logger.error('Error encountered in checkConnectionValidity(). Error is : ', err.message);
+    logger.error('Error encountered in checkConnectionValidity(). Error is : ', err);
     logger.info('Leaving checkConnectionValidity() from catch block');
     res.status(500).send('Issue in checking connection validity.');
   }
@@ -162,7 +162,7 @@ const receiveWebhook = async (req, res) => {
     return res.status(200).json({message:"success"});
   }
   catch (err) {
-    logger.error('Error encountered in receiveWebhook(). Error is : ', err.message);
+    logger.error('Error encountered in receiveWebhook(). Error is : ', err);
     logger.info('Leaving receiveWebhook() from catch block');
     res.status(500).send('Processing webhook failed due to some error.');
   }

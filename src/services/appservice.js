@@ -9,6 +9,7 @@ const { saveConnection, getSavedConnection, updateConnection, deleteConnection }
 const { updateWebhookDetails, getSavedWebhookDetails, deleteWebhookDetails } = require('../dbhelper/webhookdetailsdao');
 const { createGitHubApiHeader } = require('../utils/apputils');
 const { fetchAccessToken } = require('../utils/apputils');
+const logger = require('../config/logger'); 
 
 const initiateAuthFlow = async (context) => {
   logger.info('Entering initiateAuthFlow(). Context received is : ', context);
@@ -124,7 +125,7 @@ const validateAndRefreshAccessToken = async function (context) {
     }
   }
   catch (err) {
-    logger.error('Error encountered in validateAndRefreshAccessToken(). Error is : ', err.message);
+    logger.error('Error encountered in validateAndRefreshAccessToken(). Error is : ', err);
     logger.info('Leaving validateAndRefreshAccessToken() from catch block.');
     //some error occurred while saving details
     return false;
@@ -155,7 +156,7 @@ const createNewConnection = async (data) => {
     }
   }
   catch (err) {
-    logger.error('Error encountered in createNewConnection(). Error is : ', err.message);
+    logger.error('Error encountered in createNewConnection(). Error is : ', err);
     logger.error('Leaving createNewConnection() from catch block');
     console.log(err)
     throw err;
@@ -182,7 +183,7 @@ const getAccessToken = async (inputToken, context, isRefresh = false) => {
   }
   let config = {
     method: 'POST',
-    url: APP_URLS.APP_ACCESS_TOKEN,
+    url: APP_URLS.ACCESS_TOKEN,
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/x-www-form-urlencoded'
@@ -191,19 +192,21 @@ const getAccessToken = async (inputToken, context, isRefresh = false) => {
   };
   const tokenResponse = await axios.request(config);
   let respData = tokenResponse.data;
-  console.log('Access Token Response:', respData);
+  logger.info('Received an access token. Data received is : ', respData);
   //enrich the response object with additional details from the session context 
   respData.pronnel_user_id = context.user_id;
   respData.app_instance_id = context.app_instance_id;
   respData.workfolder_id = context.workfolder_id;
   respData.org_id = context.org_id;
   if (isRefresh) {
+    logger.info('Received new access token using refresh token. Now updating the new tokens in already present record.');
     //If we got new access token, we only need to update specific details
     await updateConnectionDetails(respData);
   } else {
     //Check if the connection is an existing one
     let isExisting = await checkIfConnectionExists(respData);
     if (isExisting) {
+      logger.info('Received new access for a logged out connection. Now updating the new tokens in already present record.');
       await updateConnectionDetails(respData);
     }
     else {
@@ -213,7 +216,28 @@ const getAccessToken = async (inputToken, context, isRefresh = false) => {
   }
 }
 
+function createAccessTokenApiReqData(inputToken, isRefresh){
+  logger.info("Entering createAccessTokenApiReqData().");
+  let data = {};
+  if (isRefresh) {
+    logger.info('Going for a refresh token.');
+    data = qs.stringify({
+      client_id: process.env.APP_CLIENT_ID, client_secret: process.env.APP_CLIENT_SECRET,
+      grant_type: 'refresh_token', refresh_token: inputToken
+    });
+  }
+  else {
+    logger.info('Going for an access token.');
+    data = qs.stringify({
+      code: inputToken, redirect_uri: REDIRECT_URI, client_id: process.env.APP_CLIENT_ID,
+      client_secret: process.env.APP_CLIENT_SECRET
+    });
+  }
+  logger.info("Leaving createAccessTokenApiReqData().");
+  return data;
+}
 const revokeToken = async (data) => {
+  logger.info("Entering revokeToken(). Data : ", data);
   let appInstanceId = data.context?.app_instance_id;
   let accessToken = await fetchAccessToken(data);
   const clientId = process.env.APP_CLIENT_ID;
@@ -228,27 +252,30 @@ const revokeToken = async (data) => {
       }
     });
     if (response.status === 204) {
-      console.log("Token revoked successfully");
+      logger.info("Token revoked successfully");
     } else {
-      console.error('Failed to revoke token');
+      logger.info('Failed to revoke token');
     }
   } catch (error) {
-    console.error('Error revoking token:', error);
+    logger.error('Error encountered while revoking token. Error is : ', error);
   } finally {
     //Delete the data from the database as well.
     let filter = new ConnectionFilter();
     filter.appInstanceIdArray = appInstanceId;
     try {
+      logger.info("Deleting the connection in finally for appInstanceId = ", appInstanceId);
       await deleteConnection(filter);
     }
     catch (err) {
-      console.log(err);
+      logger.error('Error encountered while deleting connection for appInstanceId = ', appInstanceId, '. Error is : ', err);
     }
+    logger.info('Leaving revokeToken()');
   }
 };
 
 
 const checkAccessTokenStatus = async (data) => {
+  logger.info('Entering checkAccessTokenStatus(). Data : ', data);
   try {
     let accessToken;
     let refreshTokenExpiryTime;
@@ -268,7 +295,7 @@ const checkAccessTokenStatus = async (data) => {
       }
     }
     catch (err) {
-      console.log(err);
+      logger.error('Error encountered while fetching saved connection from db. Error is : ', err);
       throw err;
     }
     const clientId = process.env.APP_CLIENT_ID;
@@ -286,28 +313,32 @@ const checkAccessTokenStatus = async (data) => {
     });
 
     if (response.status === 200) {
-      console.log('Access token is valid:', response.data);
+      logger.info('Token status api returned HTTP 200, i.e. token is working. Access Token was : ', accessToken);
       return { "status": "success" }
     } else {
-      console.error('Access token is invalid or there was an issue.');
+      logger.error('Access token is invalid or there was an issue. Access Token : ', accessToken);
       //check if the refresh token is valid, if yes, refresh access token
       if (Date.now() < refreshTokenExpiryTime) {
+        logger.info('Refresh token is still not expired. Getting the access token using refresh token.');
         await getAccessToken(data.refresh_token, context);
         return { "status": "success" }
       }
       //Refresh token has also expired, will have to invoke the complete flow again.
+      logger.info('Refresh token has also expired. Returning failure status.');
       return { "status": "failure" }
     }
   } catch (error) {
-    console.error('Error checking access token status:', error);
+    logger.error('Error checking access token status:', error);
     if (error.response && error.response.status === 404) {
-      console.log('Access token is invalid.');
+      logger.info('Inside catch block. Access token is invalid.');
     }
+    logger.inf0('Leaving checkAccessTokenStatus().');
     return { "status": "failure" }
   }
 };
 
 const saveConnectionDetails = async (data) => {
+  logger.info('Entering saveConnectionDetails(). Data : ', data);
   let currentTime = Date.now();
   let accessToken = data?.access_token;
   let refreshToken = data?.refresh_token;
@@ -318,15 +349,18 @@ const saveConnectionDetails = async (data) => {
   try {
     let connectionObj = { access_token: accessToken, refresh_token: refreshToken, pronnel_user_id: data?.pronnel_user_id, access_token_expiry_time: accessTokenExpiryTime, refresh_token_expiry_time: refreshTokenExpiryTime, app_instance_id: data?.app_instance_id, org_id: data?.org_id, workfolder_id: data?.workfolder_id };
     let result = await saveConnection(connectionObj);
-    return result._id;
+    logger.info('Leaving saveConnectionDetails(). Saved connection id = ', result?._id);
+    return result?._id;
   }
   catch (err) {
-    console.log(err)
+    logger.error('Error envountered while saving connection details. Error is : ', err);
+    logger.info('Leaving saveConnectionDetails() from catch block.');
     throw err;
   }
 };
 
 async function checkIfConnectionExists(data) {
+  logger.info('Entering checkIfConnectionExists(). Data : ', data);
   let filter = new ConnectionFilter();
   filter.workfolderIdArray = data?.workfolder_id;
   filter.orgIdArray = data?.org_id;
@@ -334,13 +368,16 @@ async function checkIfConnectionExists(data) {
   filter.pronnelUserIdArray = data?.pronnel_user_id;
   let result = await getSavedConnection(filter);
   if (result.length > 0) {
+    logger.info('Leaving checkIfConnectionExists(). Returning TRUE');
     return true;
   }
   else {
+    logger.info('Leaving checkIfConnectionExists(). Returning FALSE');
     return false;
   }
 }
 const updateConnectionDetails = async (data) => {
+  logger.info('Entering updateConnectionDetails(). Data : ', data);
   let currentTime = Date.now();
   let accessToken = data?.access_token;
   let refreshToken = data?.refresh_token;
@@ -348,7 +385,6 @@ const updateConnectionDetails = async (data) => {
   let refreshTokenExpiresIn = data?.refresh_token_expires_in;
   let accessTokenExpiryTime = currentTime + (expiresIn * 1000);
   let refreshTokenExpiryTime = currentTime + (refreshTokenExpiresIn * 1000);
-  try {
     //Now, since the connection details are verified, update the connection details in the database
     let connectionObj = { access_token: accessToken, refresh_token: refreshToken, access_token_expiry_time: accessTokenExpiryTime, refresh_token_expiry_time: refreshTokenExpiryTime };
     let filter = new ConnectionFilter();
@@ -357,15 +393,12 @@ const updateConnectionDetails = async (data) => {
     filter.appInstanceIdArray = data?.app_instance_id;
     filter.pronnelUserIdArray = data?.pronnel_user_id;
     let result = await updateConnection(filter, connectionObj);
+    logger.info('Leaving updateConnectionDetails(). Updated connection id : ', result?._id);
     return result._id;
-  }
-  catch (err) {
-    console.log(err)
-    throw err;
-  }
 };
 
 const processWebhookSample = async (type) => {
+  logger.info('Entering processWebhookSample(). Type Received : ', type);
   let dataObj = {}
   switch (type) {
     case TRIGGER_NAME.BRANCH_CREATED: dataObj = JSON.parse(BRANCH_CREATED_SAMPLE);
@@ -382,11 +415,13 @@ const processWebhookSample = async (type) => {
       break;
 
   }
+  logger.info('Leaving processWebhookSample()');
   return dataObj;
 };
 
 
 async function invokeWebhook(catchookUrl, data) {
+  logger.info('Entering invokeWebhook(). Catchhook url = ', catchookUrl, ' and data = ', data);
   let config = {
     method: 'POST',
     url: process.env.PRONNEL_HOST_URL + catchookUrl,
@@ -397,19 +432,22 @@ async function invokeWebhook(catchookUrl, data) {
   }
   try {
     const response = await axios.request(config);
-    if (response?.request_id) {
-      console.log('Webhook successfully invoked');
+    if (response?.status == 200) {
+      logger.info('Leaving invokeWebhook() with HTTP status 200. Webhook successfully invoked');
+    }
+    else {
+      logger.info('Leaving invokeWebhook() with HTTP status != 200 . Webhook could not be successfully invoked');
     }
   }
   catch (err) {
-    console.log('Webhook invocation failed');
-    console.log(err)
+    logger.error('Error encountered in invokeWebhook(). Error is : ', err);
+    logger.info('Leaving invokeWebhook() from catch block.')
     throw err;
   }
 }
 
 const processWebhook = async (payload, event) => {
-  console.log('Processing webhook:', payload);
+  logger.info('Entering processWebhook(). Payload : ', payload, ' and event : ', event);
   try {
     let triggerType = determineTriggerType(event, payload);
     let filter = new WebhookDetailsFilter();
@@ -421,11 +459,12 @@ const processWebhook = async (payload, event) => {
         await handleBranchWebhook(payload, result);
         break;
       default:
-        console.log(`Unhandled event: ${event}`);
+        logger.info('Inside process webhook switch. Encountered unhandled triggerType case!');
     }
-    return triggerType;
+    logger.info('Leaving processWebhook()');
   }
   catch (err) {
+    logger.error('Error encountered in processWebhook(). Error is : ', err);
     console.log(err)
     throw err;
   }
