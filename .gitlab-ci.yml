@@ -12,12 +12,12 @@ variables:
   SERVER_USER: root
   ID_RSA: ID_RSA_PROD_GLOBALVOTE_COM
   DOCKER_TAG: latest #$CI_COMMIT_SHORT_SHA
-  DOCKER_IMAGE_NAME: $CI_COMMIT_REF_NAME-$CI_COMMIT_REF_NAME:$DOCKER_TAG
-  DOCKER_IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-$CI_COMMIT_REF_NAME:$DOCKER_TAG
+  DOCKER_IMAGE_NAME: pronnelapp-$APP_NAME-$CI_COMMIT_REF_NAME:$DOCKER_TAG
+  DOCKER_IMAGE_TAG: $CI_REGISTRY_IMAGE/pronnelapp-$APP_NAME-$CI_COMMIT_REF_NAME:$DOCKER_TAG
   ENVIRONMENT: $CI_COMMIT_REF_NAME
-  REPOSITORY_NAME_LOG: pronnelapp$APP_NAME$CI_COMMIT_REF_NAME
-  REPOSITORY_NAME_API1: pronnelapp$APP_NAME1$CI_COMMIT_REF_NAME
-  REPOSITORY_NAME_API2: pronnelapp$APP_NAME2$CI_COMMIT_REF_NAME
+  REPOSITORY_NAME_LOG: pronnelapp-$APP_NAME-$CI_COMMIT_REF_NAME
+  REPOSITORY_NAME_API1: pronnelapp-$APP_NAME-1$CI_COMMIT_REF_NAME
+  REPOSITORY_NAME_API2: pronnelapp-$APP_NAME-2$CI_COMMIT_REF_NAME
 
 publishstaging:
   stage: publish
@@ -40,9 +40,7 @@ deploy:
     - deployment
   script:
     - chmod og= ${!ID_RSA}
-    - echo $REPOSITORY_NAME_API1 
     - ssh -i ${!ID_RSA} -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $DOCKER_IMAGE_TAG"
-
     - ssh -i ${!ID_RSA} -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f $REPOSITORY_NAME_API1 || true"
     - ssh -i ${!ID_RSA} -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run --log-driver=journald   --log-opt tag=$REPOSITORY_NAME_LOG -e SERVER_NUMBER=0 -e PRONNEL_ENV_VALUE=$ENVIRONMENT --net=host -d --name $REPOSITORY_NAME_API1 $DOCKER_IMAGE_TAG"
 
@@ -63,7 +61,6 @@ deploy2:
     - ssh -i ${!ID_RSA} -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f $REPOSITORY_NAME_API2 || true"
     - ssh -i ${!ID_RSA} -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run --log-driver=journald   --log-opt tag=$REPOSITORY_NAME_LOG -e SERVER_NUMBER=1  -e PRONNEL_ENV_VALUE=$ENVIRONMENT --net=host -d --name $REPOSITORY_NAME_API2 $DOCKER_IMAGE_TAG"
   rules:
-
     - if: $CI_COMMIT_REF_NAME == "devenvironment"
       when: delayed
-      start_in: 2 minutes    
+      start_in: 1 minutes    

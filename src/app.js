@@ -5,6 +5,7 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const { router: appRouter } = require('./routes/approutes');
+const { router: oauthRouter } = require('./routes/oauthroutes');
 const mongoose = require('mongoose');
 const app = express();
 const {setCorrelationId} = require('./config/logger')
@@ -32,6 +33,7 @@ app.use(bodyParser.json());
 
 // Use the webhook router
 app.use('/app', appRouter);
+app.use('/app/oauth', oauthRouter);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URL, {
