@@ -1,5 +1,8 @@
 // Load environment variables from .env file
-require('dotenv').config();
+require('dotenv').config({
+    path: (process.env.NODE_ENV)+'.env'
+}
+);
 const cors = require('cors');
 const express = require('express');
 const session = require('express-session');
