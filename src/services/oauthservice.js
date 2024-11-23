@@ -223,7 +223,7 @@ const checkAccessTokenStatus = async (data) => {
       if (error.response && error.response.status === 404) {
         logger.info('Inside catch block. Access token is invalid.');
       }
-      logger.inf0('Leaving checkAccessTokenStatus().');
+      logger.info('Leaving checkAccessTokenStatus().');
       return { "status": "failure" }
     }
   };
