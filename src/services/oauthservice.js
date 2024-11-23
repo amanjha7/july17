@@ -22,11 +22,7 @@ const initiateAuthFlow = async (context) => {
     // Generate OAuth URL and include the JWT in the state parameter
     const params = new URLSearchParams({
       client_id: clientId,
-      redirect_uri: redirectUri,
-      //scope: scope,
-      allow_signup: allow_signup,
-      prompt: prompt,
-      state: stateToken
+      redirect_uri: redirectUri
     });
     let returnUrl = `${url}?${params.toString()}&state=${encodeURIComponent(stateToken)}`;
     logger.info('Leaving initiateAuthFlow(). Return Url is : ', returnUrl);
