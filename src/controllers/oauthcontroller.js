@@ -1,4 +1,4 @@
-const { validateAndRefreshAccessToken, createNewConnection, updateConnectionDetails, initiateAuthFlow, getAccessToken, revokeToken, checkAccessTokenStatus } = require('../services/appservice');
+const { validateAndRefreshAccessToken, createNewConnection, updateConnectionDetails, initiateAuthFlow, getAccessToken, revokeToken, checkAccessTokenStatus ,getPronnelAccessToken} = require('../services/oauthservice');
 const jwt = require('jsonwebtoken');
 const {logger} = require('../config/logger');
 
@@ -107,6 +107,29 @@ const checkConnectionValidity = async (req, res) => {
     }
   };
 
+  const handlePronnelCallback = async (req, res) => {
+    logger.info('Entering handlePronnelCallback(). Request Body is : ', req.body);
+    const authorizationCode = req.query.code;
+    const stateToken = req.query.state;
+    if (!authorizationCode) {
+      logger.info('Leaving handlePronnelCallback(). Auth code is missing.');
+      return res.status(400).send('Authorization code is missing');
+    }
+    const context = jwt.verify(decodeURIComponent(stateToken), process.env.APP_SIGNING_SECRET);
+    try {
+      await getPronnelAccessToken(authorizationCode, context);
+      let returnUrl = context.return_url + '?success=true';
+      logger.info('Leaving handlePronnelCallback(). Redirecting with success status to', returnUrl);
+      res.redirect(returnUrl);
+    } catch (error) {
+      logger.error('Error encountered in handlePronnelCallback(). Error exchanging authorization code for token:', error);
+      let returnUrl = context.return_url + '?success=false';
+      logger.info('Leaving handlePronnelCallback() from catch block. Redirecting with false status to ', returnUrl);
+      res.redirect(returnUrl);
+    }
+  };
+
+
 
   module.exports = {
     createConnection,
@@ -115,4 +138,5 @@ const checkConnectionValidity = async (req, res) => {
     handleAuthInitiation,
     checkConnectionValidity,
     revokeAccessToken,
+    handlePronnelCallback
   }

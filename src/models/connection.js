@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { type } = require('os');
 const { Types } = mongoose;
 
 const connectionSchema = mongoose.Schema({
@@ -6,6 +7,7 @@ const connectionSchema = mongoose.Schema({
     refresh_token: { type: String, required: true },
     access_token_expiry_time: { type: Number, timestamps: true },
     refresh_token_expiry_time: { type: Number, timestamps: true },
+    type: { type: String, required: true },
     pronnel_user_id: { type: mongoose.Schema.Types.ObjectId, required: true },
     app_instance_id: { type: mongoose.Schema.Types.ObjectId, required: true },
     org_id: { type: mongoose.Schema.Types.ObjectId, required: true },
