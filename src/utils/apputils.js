@@ -96,10 +96,31 @@ const readJsonFile = (filePath, callback) => {
     });
 };
 
+function convertToCustomDateObject(epochTime) {
+    // Reference date (January 1, 1900)
+    const referenceDate = new Date("1900-01-01T00:00:00Z");
+    
+    // Calculate `date` as days since January 1, 1900
+    const dateInDays = Math.floor((epochTime - referenceDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Calculate `day_time` (milliseconds since the start of the day)
+    const dayStart = new Date(epochTime).setUTCHours(0, 0, 0, 0);
+    const dayTime = epochTime - dayStart;
+    
+    // Construct the custom object
+    return {
+        date: dateInDays,
+        time: epochTime,
+        is_time_added: true,
+        day_time: dayTime,
+    };
+}
+
 module.exports = {
     verifySignature,
     fetchAccessToken,
     getValueFromJSONObjKey,
     createGitHubApiHeader,
-    readJsonFile
+    readJsonFile,
+    convertToCustomDateObject
 }
