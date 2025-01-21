@@ -6,7 +6,6 @@ const { APP_URLS, REDIRECT_URI, TRIGGER_NAME } = require('../constants/appconsta
 const { saveConnection, getSavedConnection, updateConnection, deleteConnection } = require('../dbhelper/connectiondao')
 const { fetchAccessToken } = require('../utils/apputils');
 const {logger} = require('../config/logger'); 
-const { type } = require('os');
 
 const initiateAuthFlow = async (context) => {
     logger.info('Entering initiateAuthFlow(). Context received is : ', context);
