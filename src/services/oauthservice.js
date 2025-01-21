@@ -122,6 +122,7 @@ const validateAndRefreshAccessToken = async function (context) {
     respData.app_instance_id = context.app_instance_id;
     respData.workfolder_id = context.workfolder_id;
     respData.org_id = context.org_id;
+    respData.type = 'app';
     if (isRefresh) {
       logger.info('Received new access token using refresh token. Now updating the new tokens in already present record.');
       //If we got new access token, we only need to update specific details
@@ -234,7 +235,7 @@ const checkAccessTokenStatus = async (data) => {
     let accessTokenExpiryTime = currentTime + (expiresIn * 1000);
     let refreshTokenExpiryTime = currentTime + (refreshTokenExpiresIn * 1000);
     try {
-      let connectionObj = { access_token: accessToken, refresh_token: refreshToken, pronnel_user_id: data?.pronnel_user_id, access_token_expiry_time: accessTokenExpiryTime, refresh_token_expiry_time: refreshTokenExpiryTime, app_instance_id: data?.app_instance_id, org_id: data?.org_id, workfolder_id: data?.workfolder_id };
+      let connectionObj = { access_token: accessToken, refresh_token: refreshToken, pronnel_user_id: data?.pronnel_user_id, access_token_expiry_time: accessTokenExpiryTime, refresh_token_expiry_time: refreshTokenExpiryTime, app_instance_id: data?.app_instance_id, org_id: data?.org_id, workfolder_id: data?.workfolder_id ,type: data?.type};
       let result = await saveConnection(connectionObj);
       logger.info('Leaving saveConnectionDetails(). Saved connection id = ', result?._id);
       return result?._id;
@@ -253,6 +254,7 @@ const checkAccessTokenStatus = async (data) => {
     filter.orgIdArray = data?.org_id;
     filter.appInstanceIdArray = data?.app_instance_id;
     filter.pronnelUserIdArray = data?.pronnel_user_id;
+    filter.typeArray = data?.type;
     let result = await getSavedConnection(filter);
     if (result.length > 0) {
       logger.info('Leaving checkIfConnectionExists(). Returning TRUE');
@@ -322,6 +324,58 @@ const revokeToken = async (data) => {
     }
   };
 
+  const getPronnelAccessToken = async (inputToken, context, isRefresh = false) => {
+    logger.info('Entering getPronnelAccessToken(). Input token : ', inputToken, ' and context : ', context, ' and isRefresh : ', isRefresh);
+    // Exchange the authorization code for an access token
+    let data = {};
+    if (isRefresh) {
+      logger.info('Going for a refresh token.');
+      data = qs.stringify({
+        client_id: process.env.PRONNEL_CLIENT_ID, client_secret: process.env.PRONNEL_CLIENT_SECRET,
+        grant_type: 'refresh_token', refresh_token: inputToken
+      });}
+    else {
+      logger.info('Going for an access token.');
+      data = qs.stringify({
+        code: inputToken, client_id: process.env.PRONNEL_CLIENT_ID, client_secret: process.env.PRONNEL_CLIENT_SECRET
+      });
+    }
+    let config = {
+      method: 'POST',
+      url: PRONNEL_URLS.ACCESS_TOKEN,
+      headers: {
+        // 'Authorization': `Basic ${inputToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      data: data // Encode the data as application/x-www-form-urlencoded
+    };
+    const tokenResponse = await axios.request(config);
+    let respData = tokenResponse.data;
+    logger.info('Received an access token. Data received is : ', respData);
+    //enrich the response object with additional details from the session context 
+    respData.pronnel_user_id = context.user_id;
+    respData.app_instance_id = context.app_instance_id;
+    respData.workfolder_id = context.workfolder_id;
+    respData.org_id = context.org_id;
+    respData.type = 'pronnel';
+    if (isRefresh) {
+      logger.info('Received new access token using refresh token. Now updating the new tokens in already present record.');
+      //If we got new access token, we only need to update specific details
+      await updateConnectionDetails(respData);
+    } else {
+      //Check if the connection is an existing one
+      let isExisting = await checkIfConnectionExists(respData);
+      if (isExisting) {
+        logger.info('Received new access for a logged out connection. Now updating the new tokens in already present record.');
+        await updateConnectionDetails(respData);
+      }
+      else {
+        //Save the token details in the connection
+        await saveConnectionDetails(respData);
+    }
+  }
+};
+
   module.exports = {
     createNewConnection,
     updateConnectionDetails,
@@ -329,5 +383,6 @@ const revokeToken = async (data) => {
     getAccessToken,
     validateAndRefreshAccessToken,
     revokeToken,
-    checkAccessTokenStatus
+    checkAccessTokenStatus,
+    getPronnelAccessToken
   }

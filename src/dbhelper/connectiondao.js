@@ -1,7 +1,7 @@
 const { createMongoAndFilterForColumns, modifyMongoQuery } = require("./mongohelpers");
 const ConnectionDo = require('../models/connection');
 
-const FILTER_COLUMNS = ['workfolder_id', 'org_id', 'pronnel_user_id', '_id', 'app_instance_id'];
+const FILTER_COLUMNS = ['workfolder_id', 'org_id', 'pronnel_user_id', '_id', 'app_instance_id','type'];
 const RANGE_COLUMNS = ['create_date'];
 
 exports.saveConnection = async function (connection) {
@@ -49,6 +49,9 @@ function getRawQueryInJson(connectionFilter) {
     let connectionFilterJson = {};
     if (connectionFilter.workfolderIdArray) {
         connectionFilterJson['workfolder_id'] = connectionFilter.workfolderIdArray;
+    }
+    if (connectionFilter.typeArray) {
+        connectionFilterJson['type'] = connectionFilter.typeArray;
     }
     if (connectionFilter.pronnelUserIdArray) {
         connectionFilterJson['pronnel_user_id'] = connectionFilter.pronnelUserIdArray;
