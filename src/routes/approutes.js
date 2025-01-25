@@ -15,7 +15,7 @@ router.post('/subscribe', authenticationMiddleware, handleSubscription);
 router.post('/unsubscribe', authenticationMiddleware, handleUnsubscription);
 
 // Webhook - for sending sample response to pronnel
-router.get("/webhook/sample", sendWebhookSample);
+router.post("/webhook/sample", sendWebhookSample);
 
 // Webhook - for configuration in the app
 router.post("/common/webhook", receiveWebhook);
