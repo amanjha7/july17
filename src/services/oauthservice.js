@@ -230,8 +230,8 @@ const checkAccessTokenStatus = async (data) => {
     let currentTime = Date.now();
     let accessToken = data?.access_token;
     let refreshToken = data?.refresh_token;
-    let expiresIn = data?.expires_in;
-    let refreshTokenExpiresIn = data?.refresh_token_expires_in;
+    let expiresIn = data?.expires_in||3600;
+    let refreshTokenExpiresIn = data?.refresh_token_expires_in||3600;
     let accessTokenExpiryTime = currentTime + (expiresIn * 1000);
     let refreshTokenExpiryTime = currentTime + (refreshTokenExpiresIn * 1000);
     try {
@@ -337,7 +337,7 @@ const revokeToken = async (data) => {
     else {
       logger.info('Going for an access token.');
       data = qs.stringify({
-        code: inputToken, client_id: process.env.PRONNEL_CLIENT_ID, client_secret: process.env.PRONNEL_CLIENT_SECRET
+        code: inputToken, client_id: process.env.PRONNEL_CLIENT_ID, client_secret: process.env.PRONNEL_CLIENT_SECRET,grant_type: 'authorization_code'
       });
     }
     let config = {
