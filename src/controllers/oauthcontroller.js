@@ -118,12 +118,12 @@ const checkConnectionValidity = async (req, res) => {
     const context = jwt.verify(decodeURIComponent(stateToken), process.env.APP_SIGNING_SECRET);
     try {
       await getPronnelAccessToken(authorizationCode, context);
-      let returnUrl = context.return_url + '?success=true';
+      let returnUrl = context.return_url + '?success=true&type=pronnel';
       logger.info('Leaving handlePronnelCallback(). Redirecting with success status to', returnUrl);
       res.redirect(returnUrl);
     } catch (error) {
       logger.error('Error encountered in handlePronnelCallback(). Error exchanging authorization code for token:', error);
-      let returnUrl = context.return_url + '?success=false';
+      let returnUrl = context.return_url + '?success=false&type=pronnel';
       logger.info('Leaving handlePronnelCallback() from catch block. Redirecting with false status to ', returnUrl);
       res.redirect(returnUrl);
     }
