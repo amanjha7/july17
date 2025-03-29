@@ -7,7 +7,7 @@ const { WebhookDetailsFilter } = require('../filters/webhookdetailsfilter');
 const { APP_URLS, REDIRECT_URI, TRIGGER_NAME } = require('../constants/appconstants')
 const { getSavedConnection, deleteConnection } = require('../dbhelper/connectiondao')
 const { updateWebhookDetails, getSavedWebhookDetails, deleteWebhookDetails } = require('../dbhelper/webhookdetailsdao');
-const { fetchAccessToken } = require('../utils/apputils');
+const { fetchAccessToken, generateCryptoSignature } = require('../utils/apputils');
 const {logger} = require('../config/logger'); 
 
 const processSubscription = async (data, type) => {
