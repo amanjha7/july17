@@ -87,11 +87,13 @@ const processWebhookSample = async (type) => {
 
 async function invokeWebhook(catchookUrl, data) {
   logger.info('Entering invokeWebhook(). Catchhook url = ', catchookUrl, ' and data = ', data);
+  let hexSignature = generateCryptoSignature(data, process.env.APP_SIGNING_SECRET);
   let config = {
     method: 'POST',
     url: process.env.PRONNEL_HOST_URL + catchookUrl,
     headers: {
       'Accept': 'application/json',
+      "x-signature-sha256": `sha256=${hexSignature}`
     },
     data: data
   }

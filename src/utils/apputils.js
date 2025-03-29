@@ -116,11 +116,20 @@ function convertToCustomDateObject(epochTime) {
     };
 }
 
+function generateCryptoSignature(payload, secret) {
+    const crypto = require("crypto");
+    const hash = crypto.createHmac('sha256', secret)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+    return hash;
+}
+
 module.exports = {
     verifySignature,
     fetchAccessToken,
     getValueFromJSONObjKey,
     createGitHubApiHeader,
     readJsonFile,
-    convertToCustomDateObject
+    convertToCustomDateObject,
+    generateCryptoSignature
 }
