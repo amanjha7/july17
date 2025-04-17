@@ -1,5 +1,3 @@
-import { Job } from "bullmq";
-
 class BaseJob {
     constructor() {
         this.name = this.constructor.name;

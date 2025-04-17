@@ -1,20 +1,17 @@
 const { HelloJob } = require("../testservice/jobs/hellojob");
 const { JobWithParameter } = require("../testservice/jobs/jobwithparameter");
-const { DeleteUnUsedFileFromAws } = require("../cleanupservice/jobs/deleteunusedfilefromaws");
 
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 
 async function main() {
-    const { CleanUpService } = require('../cleanupservice/cleanupservice');
-    CleanUpService.getInstance().queueJob(new DeleteUnUsedFileFromAws());
 
     // Don't import your service before this function as connection will not be loaded.
     const { TestService } = require("../testservice/TestService");
-    
+
     let job = await TestService.getInstance().queueJob(new HelloJob());
     let job1 = await TestService.getInstance().queueJob(new JobWithParameter("vinkal"), 100);
-    
+
     let delayedJob = await TestService.getInstance().getQueue().getJobs(['delayed']);
     for (let job of delayedJob) {
         job.data.myData = "abhinav";

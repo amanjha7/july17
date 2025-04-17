@@ -1,7 +1,7 @@
-const { Job, Queue, QueueScheduler, QueueEvents } = require("bullmq");
-const { connection } = require("./queueconfig");
-const { jobHandler } = require("./jobHandler");
-const logger = require("../../api/config/logger");
+import { Queue, QueueScheduler, QueueEvents } from "bullmq";
+import { connection } from "./queueconfig";
+import { jobHandler } from "./jobHandler";
+import { info } from "../../api/config/logger";
 
 class BaseService {
     constructor(serviceName) {
@@ -27,13 +27,13 @@ class BaseService {
         opts['delay'] = delayInSeconds * 1000;
 
         if (await this.checkIfSameCronExists(baseJob, opts, serverNumberToRun, automationRuleId)) {
-            logger.info("Job with same cron already exist. Not queuing this cron job: " + baseJob.name);
+            info("Job with same cron already exist. Not queuing this cron job: " + baseJob.name);
             return;
         }
 
         if (serverNumberToRun < 0) {
             const newJob = await this.queue.add(baseJob.name, baseJob, opts);
-            logger.info("Job Queued:: " + newJob.id + " " + baseJob.name);
+            info("Job Queued:: " + newJob.id + " " + baseJob.name);
             return newJob;
         } else {
             if (!this.queueServerMap.get(serverNumberToRun)) {
@@ -42,7 +42,7 @@ class BaseService {
             }
             const serverQueue = this.queueServerMap.get(serverNumberToRun);
             const newJob = await serverQueue.add(baseJob.name, baseJob, opts);
-            logger.info("Job Queued:: " + (newJob?.id) + " " + baseJob.name);
+            info("Job Queued:: " + (newJob?.id) + " " + baseJob.name);
             return newJob;
         }
     }
@@ -79,9 +79,6 @@ class BaseService {
         for (let i = 0; i < repeatableJobs?.length; i++) {
             const repeatableJob = repeatableJobs[i];
             if (repeatableJob.name === baseJob.name && repeatableJob.cron === opts.repeat?.cron) {
-                if (automationRuleId && repeatableJob.id != automationRuleId.toString()) {
-                    return false;
-                }
                 return true;
             }
         }
@@ -102,7 +99,7 @@ class BaseService {
     }
 
     static async setupScheduler(serviceName, allTypeScriptClasses) {
-        logger.info("setupScheduler :: Redis connection for services " + connection);
+        info("setupScheduler :: Redis connection for services " + connection);
         const queueScheduler = new QueueScheduler(serviceName, { connection });
         await queueScheduler.waitUntilReady();
         await jobHandler(serviceName, allTypeScriptClasses);
@@ -120,4 +117,4 @@ class BaseService {
 }
 
 BaseService.serverNumber = Number(process.env.SERVER_NUMBER);
-module.exports = { BaseService };
+export default { BaseService };

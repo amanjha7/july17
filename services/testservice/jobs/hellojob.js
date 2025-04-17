@@ -1,5 +1,4 @@
 const { BaseJob } = require("../../base/BaseJob");
-const { Job } = require("bullmq");
 
 class HelloJob extends BaseJob {
     completed(job) {
