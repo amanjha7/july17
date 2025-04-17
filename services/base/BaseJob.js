@@ -31,4 +31,4 @@ class BaseJob {
     }
 }
 
-export default { BaseJob };
+module.exports = { BaseJob };

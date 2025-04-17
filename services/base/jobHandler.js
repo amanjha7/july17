@@ -1,8 +1,8 @@
 const { Worker } = require("bullmq");
 const { isEmpty } = require("lodash");
 const { plainToInstance } = require("class-transformer");
-const logger = require("../../api/config/logger");
-const { concurrency, connection } = require("./queueconfig").default;
+//const logger = require("../../api/config/logger");
+const { concurrency, connection } = require("./queueconfig");
 
 const jobHandler = (queueName, allTypeScriptClasses) => {
     const worker = new Worker(
@@ -15,8 +15,8 @@ const jobHandler = (queueName, allTypeScriptClasses) => {
                 throw new Error(`Unable to find job: ${job.data.name}`);
             }
 
-            logger.info("jobHandler :: job Info :: JobId: " + job.id + " JobName: " + job.name);
-            logger.debug("jobHandler :: job Details", job.asJSON());
+            //logger.info("jobHandler :: job Info :: JobId: " + job.id + " JobName: " + job.name);
+            //logger.debug("jobHandler :: job Details", job.asJSON());
 
             if (typeof instance.setJobDetails === "function") {
                 instance.setJobDetails(job);
@@ -35,7 +35,7 @@ const jobHandler = (queueName, allTypeScriptClasses) => {
     );
 
     worker.on("failed", (job) => {
-        logger.error("Job Failed:: job Details", job.asJSON());
+        //logger.error("Job Failed:: job Details", job.asJSON());
         // You can re-enable the failed logic here if needed
         // const instance = plainToInstance(allTypeScriptClasses.get(job.data.name), job.data);
         // if (typeof instance.failed === "function") {
@@ -44,7 +44,7 @@ const jobHandler = (queueName, allTypeScriptClasses) => {
     });
 
     worker.on("completed", (job) => {
-        logger.debug("Job Completed:: job Details", job.asJSON());
+        //logger.debug("Job Completed:: job Details", job.asJSON());
     });
 };
 

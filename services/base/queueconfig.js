@@ -5,7 +5,7 @@ const connection = {
 
 const concurrency = parseInt(process.env.CONCURRENT_BULLMQ_WORKER);
 
-export default {
+module.exports = {
     connection,
     concurrency
 };

@@ -1,7 +1,7 @@
-import { Queue, QueueScheduler, QueueEvents } from "bullmq";
-import { connection } from "./queueconfig";
-import { jobHandler } from "./jobHandler";
-import { info } from "../../api/config/logger";
+const { Queue, QueueScheduler, QueueEvents } = require("bullmq");
+const { connection } = require("./queueconfig");
+const { jobHandler } = require("./jobHandler");
+//const { info } = require("../../api/config/logger");
 
 class BaseService {
     constructor(serviceName) {
@@ -27,13 +27,13 @@ class BaseService {
         opts['delay'] = delayInSeconds * 1000;
 
         if (await this.checkIfSameCronExists(baseJob, opts, serverNumberToRun, automationRuleId)) {
-            info("Job with same cron already exist. Not queuing this cron job: " + baseJob.name);
+            //info("Job with same cron already exist. Not queuing this cron job: " + baseJob.name);
             return;
         }
 
         if (serverNumberToRun < 0) {
             const newJob = await this.queue.add(baseJob.name, baseJob, opts);
-            info("Job Queued:: " + newJob.id + " " + baseJob.name);
+            //info("Job Queued:: " + newJob.id + " " + baseJob.name);
             return newJob;
         } else {
             if (!this.queueServerMap.get(serverNumberToRun)) {
@@ -42,7 +42,7 @@ class BaseService {
             }
             const serverQueue = this.queueServerMap.get(serverNumberToRun);
             const newJob = await serverQueue.add(baseJob.name, baseJob, opts);
-            info("Job Queued:: " + (newJob?.id) + " " + baseJob.name);
+            //info("Job Queued:: " + (newJob?.id) + " " + baseJob.name);
             return newJob;
         }
     }
@@ -117,4 +117,5 @@ class BaseService {
 }
 
 BaseService.serverNumber = Number(process.env.SERVER_NUMBER);
-export default { BaseService };
+
+module.exports = { BaseService };

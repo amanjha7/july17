@@ -53,5 +53,5 @@ app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
 
-import {CronJobs} from "../cron-jobs";
+const {CronJobs} = require("../cron-jobs");
 CronJobs.start().then()
