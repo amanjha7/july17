@@ -52,3 +52,6 @@ let port = (Number(process.env.PORT)|| 22001) + (Number(process.env.SERVER_NUMBE
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
+
+import {CronJobs} from "../cron-jobs";
+CronJobs.start().then()
