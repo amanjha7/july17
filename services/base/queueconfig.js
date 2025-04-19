@@ -3,7 +3,8 @@ const connection = {
     port: Number(process.env.REDIS_PORT)
 };
 
-const concurrency = parseInt(process.env.CONCURRENT_BULLMQ_WORKER);
+const parsed = Number.parseInt(process.env.CONCURRENT_BULLMQ_WORKER ?? "");
+const concurrency = isNaN(parsed) ? 1 : parsed;
 
 module.exports = {
     connection,
