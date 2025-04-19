@@ -1,4 +1,4 @@
-const { BaseJob } = require("../../base/BaseJob");
+const { BaseJob } = require("../../base/basejob");
 const { Job } = require("bullmq");
 
 class JobWithParameter extends BaseJob {

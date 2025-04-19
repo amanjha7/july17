@@ -1,6 +1,6 @@
 const { Queue, QueueScheduler, QueueEvents } = require("bullmq");
 const { connection } = require("./queueconfig");
-const { jobHandler } = require("./jobHandler");
+const { jobHandler } = require("./jobhandler");
 const {logger} = require("../../src/config/logger");
 
 class BaseService {
