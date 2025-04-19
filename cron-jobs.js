@@ -1,4 +1,4 @@
-const { TestService } = require("./services/testservice/TestService");
+const { TestService } = require("./services/testservice/testservice");
 const { HelloJob } = require("./services/testservice/jobs/hellojob");
 
 class CronJobs {
