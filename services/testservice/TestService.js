@@ -1,4 +1,4 @@
-const { BaseService } = require("../base/baseservice").default;
+const { BaseService } = require("../base/baseservice");
 
 class TestService extends BaseService {
     static instance;

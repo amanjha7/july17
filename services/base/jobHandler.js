@@ -1,8 +1,8 @@
 const { Worker } = require("bullmq");
 const { isEmpty } = require("lodash");
 const { plainToInstance } = require("class-transformer");
-const logger = require("../../api/config/logger");
-const { concurrency, connection } = require("./queueconfig").default;
+const {logger} = require("../../src/config/logger");
+const { concurrency, connection } = require("./queueconfig");
 
 const jobHandler = (queueName, allTypeScriptClasses) => {
     const worker = new Worker(

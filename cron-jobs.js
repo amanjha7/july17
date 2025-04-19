@@ -1,15 +1,15 @@
-import { TestService } from "./services/testservice/TestService";
+const { TestService } = require("./services/testservice/TestService");
+const { HelloJob } = require("./services/testservice/jobs/hellojob");
 
 class CronJobs {
-
     static async start() {
         // Example Cron Jobs
-        await TestService.getInstance().queueJob(new UpdateLastActivityTime(), 0, {
+        await TestService.getInstance().queueJob(new HelloJob(), 0, {
             repeat: {
-                cron: "0 0 */12 ? * *"
+                cron: "*/1 * * * *"
             }
         });
     }
 }
 
-export default { CronJobs };
+module.exports = { CronJobs };

@@ -2,6 +2,7 @@ const { ConnectionFilter } = require('../filters/connectionfilter');
 const axios = require('axios');
 const { getSavedConnection } = require('../dbhelper/connectiondao');
 const { logger } = require('../config/logger');
+const fs = require('fs');
 
 const verifySignature = async function (secret, header, payload) {
     let encoder = new TextEncoder();
@@ -123,6 +124,35 @@ function generateCryptoSignature(payload, secret) {
     .digest('hex');
     return hash;
 }
+function getFilesFromDirectoryRecursively(dir) {
+    let results = []
+    let list = fs.readdirSync(dir);
+    list.forEach(function (file) {
+        file = dir + '/' + file;
+        let stat = fs.statSync(file);
+        if (stat && stat.isDirectory()) {
+            /* Recurse into a subdirectory */
+            results = results.concat(getFilesFromDirectoryRecursively(file));
+        } else {
+            /* Is a file */
+            results.push(file);
+        }
+    });
+    return results
+}
+
+function loadAllClassesDynamically(files){
+    let allClasses = new Map()
+    files.forEach((file) =>{
+        file = "../../"+file
+        let test = require(file)
+        let keys = Object.keys(test)
+        keys.forEach((key) =>{
+            allClasses.set(key,test[key])
+        })
+    })
+    return allClasses
+}
 
 module.exports = {
     verifySignature,
@@ -131,5 +161,7 @@ module.exports = {
     createGitHubApiHeader,
     readJsonFile,
     convertToCustomDateObject,
-    generateCryptoSignature
+    generateCryptoSignature,
+    loadAllClassesDynamically,
+    getFilesFromDirectoryRecursively
 }
