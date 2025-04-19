@@ -12,8 +12,8 @@ const { router: oauthRouter } = require('./routes/oauthroutes');
 const mongoose = require('mongoose');
 const app = express();
 const {setCorrelationId} = require('./config/logger')
+const { BaseService } =require("../services/base/baseservice");
 app.use(cors())
-
 // Use setCorrelationId middleware ( for logging statement relation)
 app.use(setCorrelationId); // Set correlation ID for every request
 
@@ -30,9 +30,10 @@ app.use(session({
     }
   }));
   
-// Middleware to parse JSON bodies
-app.use(bodyParser.json());
-
+  // Middleware to parse JSON bodies
+  app.use(bodyParser.json());
+  
+  BaseService.startServices(["TestService"]);
 
 // Use the webhook router
 app.use('/app', appRouter);

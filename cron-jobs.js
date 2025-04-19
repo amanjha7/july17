@@ -1,13 +1,14 @@
 const { TestService } = require("./services/testservice/TestService");
+const { HelloJob } = require("./services/testservice/jobs/hellojob");
 
 class CronJobs {
     static async start() {
         // Example Cron Jobs
-        // await TestService.getInstance().queueJob(new UpdateLastActivityTime(), 0, {
-        //     repeat: {
-        //         cron: "0 0 */12 ? * *"
-        //     }
-        // });
+        await TestService.getInstance().queueJob(new HelloJob(), 0, {
+            repeat: {
+                cron: "*/1 * * * *"
+            }
+        });
     }
 }
 
