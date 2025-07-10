@@ -44,7 +44,7 @@ const processSubscription = async (data, type) => {
 const processUnsubscription = async (data, type) => {
   logger.info('Entering processUnsubscription(). Data : ', data, ' and Type : ', type);
   //Get the connection id from request
-  let appInstanceId = data.appInstanceId;
+  let appInstanceId = data.context.app_instance_id;
   //Fetch the data related to this connectionId in the database
   let filter = new ConnectionFilter();
   filter.appInstanceIdArray = appInstanceId;
@@ -53,10 +53,10 @@ const processUnsubscription = async (data, type) => {
     if (result?.length) {
       for (let conn of result) {
         let filter = new WebhookDetailsFilter();
-        filter.automation_id = data.automationId;
-        filter.connection_id = conn._id;
-        filter.pronnel_webhook_url = data.pronnel_webhook_url;
-        filter.trigger_type = type;
+        filter.automationIdArray = data?.automation_id;
+        filter.connectionIdArray = conn?._id;
+        filter.pronnelWebhookUrlArray = data?.pronnel_webhook_url;
+        filter.triggerTypeArray = type;
         await deleteWebhookDetails(filter);
       }
     }
