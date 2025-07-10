@@ -6,6 +6,8 @@ const { APP_URLS, REDIRECT_URI, TRIGGER_NAME } = require('../constants/appconsta
 const { saveConnection, getSavedConnection, updateConnection, deleteConnection } = require('../dbhelper/connectiondao')
 const { fetchAccessToken } = require('../utils/apputils');
 const {logger} = require('../config/logger'); 
+const { PronnelOauthService } = require('../../services/oauthservice/pronneloauthservice')
+const { RefreshPronnelOauthTokenJob } = require('../../services/oauthservice/jobs/RefreshPronnelOauthTokenJob');
 
 const initiateAuthFlow = async (context) => {
     logger.info('Entering initiateAuthFlow(). Context received is : ', context);
@@ -373,6 +375,11 @@ const revokeToken = async (data) => {
         //Save the token details in the connection
         await saveConnectionDetails(respData);
     }
+    PronnelOauthService.getInstance().queueJob(new RefreshPronnelOauthTokenJob(context.app_instance_id), 0, {
+      repeat: {
+        cron: "0 0 */7 * *"
+      }
+    })
   }
 };
 
