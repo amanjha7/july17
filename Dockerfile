@@ -17,7 +17,7 @@
 #docker tag dockerregistry.athmin.com:5000/nodebase:14.18.1 dockerregistry.athmin.com:5000/nodebase:14.18.1
 #docker push dockerregistry.athmin.com:5000/nodebase:14.18.1
 
-FROM dockerregistry.athmin.com:5000/nodebase:14.18.1
+FROM dockerregistry.athmin.com:5000/nodebase:20.19.4
 ARG PRONNEL_ENV
 
 # Create app directory
