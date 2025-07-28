@@ -8,9 +8,9 @@ stages:
 
 variables:
   APP_NAME: test
-  SERVER_IP: 10.0.0.208
+  SERVER_IP: 	$APPS_SERVER_DEV2
   SERVER_USER: azureuser
-  ID_RSA: ID_RSA_DEV1_PRONNEL_COM
+  ID_RSA: ID_RSA_GENERIC_SERVER
   DOCKER_TAG: latest #$CI_COMMIT_SHORT_SHA
   DOCKER_IMAGE_NAME: pronnelapp-$APP_NAME-$CI_COMMIT_REF_NAME:$DOCKER_TAG
   DOCKER_IMAGE_TAG: $CI_REGISTRY_IMAGE/pronnelapp-$APP_NAME-$CI_COMMIT_REF_NAME:$DOCKER_TAG
@@ -31,7 +31,9 @@ publishstaging:
     - docker push $DOCKER_IMAGE_TAG
 
   rules:
-    - if: $CI_COMMIT_REF_NAME == "devenvironment"
+    - if: $CI_COMMIT_REF_NAME == "dev2environment"
+    - if: $CI_COMMIT_REF_NAME == "dev1environment"
+    - if: $CI_COMMIT_REF_NAME == "releasev1prod1"
 
 
 deploy:
@@ -48,7 +50,9 @@ deploy:
     name: production
     url: http://your_server_IP
   rules:
-    - if: $CI_COMMIT_REF_NAME == "devenvironment"
+    - if: $CI_COMMIT_REF_NAME == "dev2environment"
+    - if: $CI_COMMIT_REF_NAME == "dev1environment"
+    - if: $CI_COMMIT_REF_NAME == "releasev1prod1"
 
 
 #deploy2:
