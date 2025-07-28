@@ -8,7 +8,7 @@ stages:
 
 variables:
   APP_NAME: test
-  SERVER_IP: APPS_SERVER_DEV1
+  DEPLOY_SERVER_IP: APPS_SERVER_DEV1
   SERVER_USER: azureuser
   ID_RSA: ID_RSA_GENERIC_SERVER
   DOCKER_TAG: latest #$CI_COMMIT_SHORT_SHA
@@ -41,7 +41,7 @@ deploy:
   tags:
     - deployment
   script:
-    - eval "SERVER_IP=\$APPS_SERVER_DEV1"
+    - eval "SERVER_IP=\$DEPLOY_SERVER_IP"
     - echo $SERVER_IP
     - chmod og= ${!ID_RSA}
     - ssh -i ${!ID_RSA} -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $DOCKER_IMAGE_TAG"
