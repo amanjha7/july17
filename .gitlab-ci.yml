@@ -24,7 +24,7 @@ publishstaging:
   tags:
     - publish
   script:
-    - eval "SERVER_IP=\$$APPS_SERVER_DEV1"
+    - eval "SERVER_IP=\$APPS_SERVER_DEV1"
     - echo $SERVER_IP
     - echo $ENVIRONMENT $REPOSITORY_NAME_API1 
     - echo $DOCKER_IMAGE_NAME $DOCKER_IMAGE_TAG
