@@ -38,4 +38,5 @@ RUN npm install  -–legacy-peer-deps --verbose
 
 RUN echo $PRONNEL_ENV
 ENV PRONNEL_ENV_VALUE=$PRONNEL_ENV
-CMD ["sh", "-c", "npm run $PRONNEL_ENV_VALUE"]
+#CMD ["sh", "-c", "npm run $PRONNEL_ENV_VALUE"]
+CMD ["sh", "-c", "npm run $(echo $PRONNEL_ENV_VALUE | grep -qi 'release' && echo prodenvironment || echo $PRONNEL_ENV_VALUE)"]
