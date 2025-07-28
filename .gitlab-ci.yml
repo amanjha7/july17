@@ -41,7 +41,7 @@ deploy:
   tags:
     - deployment
   script:
-    - eval "SERVER_IP=\$DEPLOY_SERVER_IP"
+    - eval "SERVER_IP=\$$DEPLOY_SERVER_IP"
     - echo $SERVER_IP
     - chmod og= ${!ID_RSA}
     - ssh -i ${!ID_RSA} -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $DOCKER_IMAGE_TAG"
