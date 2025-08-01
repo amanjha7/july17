@@ -9,7 +9,7 @@ const APP_URLS = {
     AUTHORIZE: `${BASE_URL}/login/oauth/authorize`
 }
 const APP_HOST_URL=process.env.APP_HOST_URL;
-const REDIRECT_URI = `${APP_HOST_URL}/github/callback`;
+const REDIRECT_URI = `${APP_HOST_URL}/callback`;
 
 //This is the sample response that will be sent to the Pronnel automation trigger's webhook
 const BRANCH_CREATED_SAMPLE = `{
