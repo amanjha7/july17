@@ -33,7 +33,6 @@ app.use(session({
   // Middleware to parse JSON bodies
   app.use(bodyParser.json());
   
-  BaseService.startServices(["TestService"]);
 
 // Use the webhook router
 app.use('/app', appRouter);
@@ -54,5 +53,3 @@ app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
 
-const {CronJobs} = require("../cron-jobs");
-CronJobs.start().then()
