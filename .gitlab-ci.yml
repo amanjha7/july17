@@ -7,7 +7,7 @@ stages:
 #    - source gitbuildvariables.env
 
 variables:
-  APP_NAME: test
+  APP_NAME: zohoform
   DEPLOY_SERVER_IP: APPS_SERVER_PROD
   SERVER_USER: azureuser
   ID_RSA: ID_RSA_GENERIC_SERVER
@@ -41,6 +41,22 @@ deploy:
   tags:
     - deployment
   script:
+    - |
+      if [[ "$CI_COMMIT_REF_NAME" == "dev1environment" ]]; then
+        export NODE_ENV="dev1"
+        eval "SERVER_IP=\$APPS_SERVER_DEV1"
+      elif [[ "$CI_COMMIT_REF_NAME" == *"release"* ]]; then
+        export NODE_ENV="prod"
+        eval "SERVER_IP=\$APPS_SERVER_PROD"
+      elif [[ "$CI_COMMIT_REF_NAME" == "dev2environment" ]]; then
+        export NODE_ENV="dev2"
+        eval "SERVER_IP=\$APPS_SERVER_DEV2"
+      else
+        export NODE_ENV="dev1"
+        eval "SERVER_IP=\$APPS_SERVER_DEV1"
+      fi
+      echo "NODE_ENV is $NODE_ENV"
+      echo "SERVER_IP is $SERVER_IP"
     - eval "SERVER_IP=\$$DEPLOY_SERVER_IP"
     - echo $SERVER_IP
     - chmod og= ${!ID_RSA}
