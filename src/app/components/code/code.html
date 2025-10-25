@@ -1,4 +1,4 @@
-<div class="code-card">
+<div class="code-card" *ngIf="code">
   <div class="code-header">
     <span class="title">HTML Code Snippet</span>
     <button class="copy-btn" (click)="copyCode()">
@@ -6,7 +6,7 @@
     </button>
   </div>
 
-  <pre><code class="language-html">{{ code }}</code></pre>
+  <pre><code class="language-html" [textContent]="code"></code></pre>
 
   <div class="copied-toast" *ngIf="copied">Copied ✅</div>
 </div>

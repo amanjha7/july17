@@ -23,6 +23,7 @@ export class Appservice {
   public instanceDetails:string='/app/oauth/connection/details';
   public connection : string = '/app/oauth/connection';
   public connectionDetails : string = '/app/oauth/connection/details';
+  public createInboxUrl:string = '/app/create/inboxes';
 
     public userRole: string ='';
 
@@ -219,5 +220,14 @@ export class Appservice {
       headers,
       observe: 'response'
     })
+  }
+
+  createInbox(data:any){
+    const url :string = `${this.baseUrl}${this.createInboxUrl}`;
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: `${this.token}`,
+    })
+    return this.http.post(url,{...data},{headers})
   }
 }

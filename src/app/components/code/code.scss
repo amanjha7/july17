@@ -60,3 +60,12 @@ pre {
   90% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+pre {
+  white-space: pre-wrap; /* preserves newlines and wraps long lines */
+  word-break: break-word; /* optional: wrap long lines */
+}
+
+code {
+  display: block;
+}

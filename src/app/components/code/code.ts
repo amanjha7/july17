@@ -1,5 +1,5 @@
+import { Component, Input, AfterViewChecked } from '@angular/core';
 import { CommonModule, NgIf } from '@angular/common';
-import { Component, Input, AfterViewInit } from '@angular/core';
 import * as Prism from 'prismjs';
 import 'prismjs/components/prism-markup';
 
@@ -10,14 +10,19 @@ import 'prismjs/components/prism-markup';
   templateUrl: './code.html',
   styleUrls: ['./code.scss']
 })
-export class Webhook implements AfterViewInit {
-  @Input() code: string = ``
-
+export class Webhook implements AfterViewChecked {
+  @Input() code: string = ``;
   copied = false;
 
-  ngAfterViewInit() {
+  private lastCode = '';
+
+ngAfterViewChecked() {
+  if (this.code && this.code !== this.lastCode) {
     Prism.highlightAll();
+    this.lastCode = this.code;
   }
+}
+
 
   async copyCode() {
     try {

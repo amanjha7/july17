@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { LoaderComponent } from '../loader/loader.component';
 import { ProfileComponent } from '../profile/profile.component';
 import { Webhook } from '../code/code';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-layout',
@@ -26,41 +27,10 @@ export class LayoutComponent {
   isAuthenticated = false;
   isSharedUser:boolean =false;
   baseUrl:string='https://plugins.pronnel.com/app31'
-  inbox_id='c099ab7d-dab0-4fe4-8c56-1c6afda1589b'
-  code=`
-  <html>
-  <body>
-    <h1>PaperCups</h1>
-    <script>
-      window.Papercups = {
-        config: {
-          token: "98e287e3-0daa-4db0-bf03-303c0425ce87",
-          inbox: ${this.inbox_id},
-          title: "Welcome to Your comapny",
-          subtitle: "Ask us anything in the chat window below 😊",
-          primaryColor: "#1890ff",
-          newMessagePlaceholder: "Start typing...",
-          showAgentAvailability: false,
-          agentAvailableText: "We're online right now!",
-          agentUnavailableText: "We're away at the moment.",
-          requireEmailUpfront: false,
-          iconVariant: "outlined",
-          baseUrl: "https://developerapithree.pronnel.com/",
-          iframeUrlOverride: "http://localhost:8080",
-          debug: false
-        }
-      };
-    </script>
-    <script
-      type="text/javascript"
-      async
-      defer
-      src="https://developerapithree.pronnel.com/widget.js"
-    ></script>
-  </body>
-</html>
+  inbox_id=''
+code: string =` `;
 
-  `
+
 
   successMessage = '';
   errorMessage = '';
@@ -69,7 +39,7 @@ export class LayoutComponent {
   loggedout : boolean | null =null;
   userDetails: any; 
 
-  constructor(private appService: Appservice, private route: ActivatedRoute) {}
+  constructor(private appService: Appservice, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     window.addEventListener('message', this.receiveMessage);
@@ -90,16 +60,25 @@ export class LayoutComponent {
             if(response?.body?.status === 'success'){
               this.isAuthenticated = true;
               this.initialLoading=false;
-              this.appService.getUserDetails().subscribe({
-                next: (response) => {
-                  this.userDetails = response;
-                }, error: (err) => {
-                  console.log('Error : ', err);
-                }
-              })
+              this.inbox_id = response?.body?.inbox_id;
+              this.code = this.generateCode(this.inbox_id);
+              this.cdr.detectChanges();
+              console.log(' resp ',response?.body, this.inbox_id )
             } else {
-                this.isAuthenticated = false;
-                this.initialLoading=false;
+                this.appService.createInbox({}).subscribe({
+                  next: (resp:any)=>{
+                    if(resp.inbox_id){
+                      this.inbox_id = resp.inbox_id
+                    }
+                  },error:()=>{
+                    this.isAuthenticated = false;
+                    this.initialLoading=false;
+                  },
+                  complete:()=>{
+                    this.isAuthenticated = false;
+                    this.initialLoading=false;
+                  }
+                })
             }
           }, 
           error :()=>{
@@ -122,5 +101,42 @@ export class LayoutComponent {
     if (event.data.base_url) this.appService.baseUrl = event.data.base_url;
     if (event.data.session_token) this.appService.token = event.data.session_token;
   };
+
+
+generateCode(inbox_id: string) {
+  return `
+  <html>
+  <body>
+    <h1>PaperCups</h1>
+    <script>
+      window.Papercups = {
+        config: {
+          token: "98e287e3-0daa-4db0-bf03-303c0425ce87",
+          inbox: "${inbox_id}",
+          title: "Welcome to Your company",
+          subtitle: "Ask us anything in the chat window below 😊",
+          primaryColor: "#1890ff",
+          newMessagePlaceholder: "Start typing...",
+          showAgentAvailability: false,
+          agentAvailableText: "We're online right now!",
+          agentUnavailableText: "We're away at the moment.",
+          requireEmailUpfront: false,
+          iconVariant: "outlined",
+          baseUrl: "https://developerapithree.pronnel.com/",
+          iframeUrlOverride: "http://localhost:8080",
+          debug: false
+        }
+      };
+    </script>
+    <script
+      type="text/javascript"
+      async
+      defer
+      src="https://developerapithree.pronnel.com/widget.js"
+    ></script>
+  </body>
+</html>
+  `;
+}
 
 }
