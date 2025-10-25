@@ -1,35 +1,62 @@
-.copy-btn {
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-  padding: 4px 8px;
-  cursor: pointer;
-  border-radius: 4px;
-  font-family: monospace;
+.code-card {
+  background: #1e1e1e;
+  border-radius: 10px;
+  overflow: hidden;
+  color: #fff;
+  font-family: "Roboto Mono", monospace;
+  border: 1px solid #333;
+  position: relative;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
-.copied-msg {
-  margin-left: 8px;
-  color: green;
-  font-size: 0.9em;
-}
-
-.callback-box {
+.code-header {
+  background-color: #2d2d2d;
+  padding: 9px 14px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 6px 0;
+  justify-content: space-between;
+  font-weight: 500;
 }
 
 .copy-btn {
-  background: #f8f9fa;
-  border: 1px solid #ddd;
-  padding: 4px 10px;
+  background: #0078d4;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
   cursor: pointer;
-  border-radius: 6px;
-  font-family: monospace;
+  color: #fff;
+  font-size: 13px;
+  transition: background 0.2s ease;
 }
 
-.copied-msg {
-  color: green;
-  font-size: 0.9em;
+.copy-btn:hover {
+  background: #005fa3;
+}
+
+pre {
+  margin: 0;
+  padding: 14px;
+  font-size: 14px;
+  overflow-x: auto;
+}
+
+.copied-toast {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  background: #4caf50;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  animation: fadeInOut 2s forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
 }

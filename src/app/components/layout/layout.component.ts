@@ -26,6 +26,41 @@ export class LayoutComponent {
   isAuthenticated = false;
   isSharedUser:boolean =false;
   baseUrl:string='https://plugins.pronnel.com/app31'
+  inbox_id='c099ab7d-dab0-4fe4-8c56-1c6afda1589b'
+  code=`
+  <html>
+  <body>
+    <h1>PaperCups</h1>
+    <script>
+      window.Papercups = {
+        config: {
+          token: "98e287e3-0daa-4db0-bf03-303c0425ce87",
+          inbox: ${this.inbox_id},
+          title: "Welcome to Your comapny",
+          subtitle: "Ask us anything in the chat window below 😊",
+          primaryColor: "#1890ff",
+          newMessagePlaceholder: "Start typing...",
+          showAgentAvailability: false,
+          agentAvailableText: "We're online right now!",
+          agentUnavailableText: "We're away at the moment.",
+          requireEmailUpfront: false,
+          iconVariant: "outlined",
+          baseUrl: "https://developerapithree.pronnel.com/",
+          iframeUrlOverride: "http://localhost:8080",
+          debug: false
+        }
+      };
+    </script>
+    <script
+      type="text/javascript"
+      async
+      defer
+      src="https://developerapithree.pronnel.com/widget.js"
+    ></script>
+  </body>
+</html>
+
+  `
 
   successMessage = '';
   errorMessage = '';
