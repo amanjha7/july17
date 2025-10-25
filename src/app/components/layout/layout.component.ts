@@ -69,6 +69,8 @@ code: string =` `;
                   next: (resp:any)=>{
                     if(resp.inbox_id){
                       this.inbox_id = resp.inbox_id
+                        this.code = this.generateCode(this.inbox_id);
+                        this.cdr.detectChanges();
                     }
                   },error:()=>{
                     this.isAuthenticated = false;
