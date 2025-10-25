@@ -1,0 +1,252 @@
+
+<!-- // =========================== profile.component.html ===========================
+/*
+Intentionally structured for F-shaped scanning:
+- First line: identity & headline metrics
+- Second block: actionable capability chips
+- Left-to-right: coverage & security, then orgs/users, then deep features
+
+  UI/UX architecture and F-shaped scanning layout designed by AMAN JHA.
+  This structure helps readers scan information efficiently in an F-pattern.
+*/ -->
+
+<div class="container-fluid profile-wrap py-3">
+  <!-- Headline Row -->
+  <div class="row g-3 align-items-stretch">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-body d-flex flex-wrap gap-3 justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-3">
+            <div class="logo-circle d-flex align-items-center justify-content-center">
+              <i class="bi bi-pen"></i>
+            </div>
+            <div>
+              <h4 class="mb-0 d-flex align-items-center gap-2">
+                {{ orgName || '—' }}
+                <span class="badge text-bg-primary d-inline-flex align-items-center gap-1">
+                  <i class="bi bi-award"></i> {{ license || '—' }}
+                </span>
+              </h4>
+              <div class="text-muted small">
+                Account: <code class="text-body">{{ accountId }}</code>
+                <span class="mx-2">•</span>
+                ZSOID: <code class="text-body">{{ zsoid }}</code>
+                <span class="mx-2">•</span>
+                Status: <span class="badge" [class.bg-success]="status==='success'" [class.bg-secondary]="status!=='success'">{{ status }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-3 stats">
+            <div class="stat-card">
+              <div class="label"><i class="bi bi-calendar-event"></i> Created</div>
+              <div class="value">{{ createdAt | date:'mediumDate' }} <span class="text-muted small">({{ createdAgoDays }}d ago)</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="label"><i class="bi bi-people"></i> Users</div>
+              <div class="value">{{ users?.length || 0 }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="label"><i class="bi bi-diagram-3"></i> Organizations</div>
+              <div class="value">{{ orgs?.length || 0 }}</div>
+            </div>
+            <div class="stat-card d-flex align-items-center gap-3">
+              <div class="radial" [ngStyle]="{'--p': featureCoverage + '%'}">
+                <div class="radial-inner">{{ featureCoverage }}%</div>
+              </div>
+              <div>
+                <div class="label"><i class="bi bi-graph-up"></i> Feature Coverage</div>
+                <div class="value">{{ enabledFeatures }}/{{ totalFeatures }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Capability Chips -->
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-body d-flex flex-wrap gap-2">
+          <ng-container *ngFor="let q of quickFlags">
+            <span class="cap-chip" [class.disabled]="!features[q.key]" [attr.title]="q.label">
+              <i class="bi" [ngClass]="q.icon"></i>
+              {{ q.label }}
+            </span>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <!-- Security & Compliance snapshot -->
+    <div class="col-12 col-lg-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white border-0 pb-0">
+          <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-lock"></i> Security Snapshot</h6>
+        </div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-shield-lock me-2"></i> 2FA (OTP: SMS/Email/Offline)</span>
+              <span class="badge" [ngClass]="getBadgeClass(features['sms_otp'] && features['email_otp'] && features['offline_otp'])"> {{ (features['sms_otp'] && features['email_otp'] && features['offline_otp']) ? 'On' : 'Off' }} </span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-patch-check me-2"></i> KBA</span>
+              <span class="badge" [ngClass]="getBadgeClass(features['KBA'])">{{ features['KBA'] ? 'On' : 'Off' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-hourglass-split me-2"></i> Timestamping</span>
+              <span class="badge" [ngClass]="getBadgeClass(features['time_stamp'])">{{ features['time_stamp'] ? 'On' : 'Off' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-badge-tm me-2"></i> Compliance (NOM-151)</span>
+              <span class="badge" [ngClass]="getBadgeClass(features['NOM151'])">{{ features['NOM151'] ? 'On' : 'Off' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-link-45deg me-2"></i> Trusted/Custom Domains</span>
+              <span class="badge" [ngClass]="getBadgeClass(features['trusted_domains'] && features['custom_domains'])"> {{ (features['trusted_domains'] && features['custom_domains']) ? 'On' : 'Off' }} </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Organizations -->
+    <div class="col-12 col-lg-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white border-0 pb-0"><h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-diagram-3"></i> Organizations</h6></div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr class="text-muted small">
+                  <th>Name</th>
+                  <th>License</th>
+                  <th>Plan</th>
+                  <th>Admin</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let o of orgs">
+                  <td>
+                    <div class="fw-medium">{{ o.org_name }}</div>
+                    <div class="small text-muted">ID: <code>{{ o.org_id }}</code></div>
+                  </td>
+                  <td><span class="badge text-bg-primary">{{ o.license_type }}</span></td>
+                  <td><span class="badge text-bg-light border"><i class="bi bi-box"></i> {{ o.plan_name || o.plan_id }}</span></td>
+                  <td>
+                    <span class="badge" [class.bg-success]="o.is_admin" [class.bg-secondary]="!o.is_admin">{{ o.is_admin ? 'Yes' : 'No' }}</span>
+                    <span *ngIf="o.is_default" class="badge text-bg-info ms-1">Default</span>
+                  </td>
+                </tr>
+                <tr *ngIf="!orgs?.length">
+                  <td colspan="4" class="text-center text-muted small py-4">No organizations</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="col-12 col-lg-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white border-0 pb-0"><h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-people"></i> Users</h6></div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr class="text-muted small">
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let u of users">
+                  <td>
+                    <div class="fw-medium">{{ (u.first_name || '') + (u.last_name ? (' ' + u.last_name) : '') || '—' }}</div>
+                    <div class="small text-muted">ZUID: <code>{{ u.ZUID }}</code> • ID: <code>{{ u.user_id }}</code></div>
+                  </td>
+                  <td>
+                    <i class="bi bi-envelope me-1"></i>{{ u.user_email }}
+                  </td>
+                  <td>
+                    <span class="badge" [class.bg-success]="u.user_status===1" [class.bg-secondary]="u.user_status!==1">{{ u.user_status===1 ? 'Active' : 'Inactive' }}</span>
+                  </td>
+                </tr>
+                <tr *ngIf="!users?.length">
+                  <td colspan="3" class="text-center text-muted small py-4">No users</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature Explorer -->
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-0">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-grid"></i> Feature Explorer</h6>
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-search text-muted"></i>
+              <input class="form-control form-control-sm search-feature" style="min-width: 260px" [(ngModel)]="featureFilter" placeholder="Filter features… (e.g. webhook, template)"/>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-lg-6" *ngFor="let g of grouped">
+              <div class="group-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi" [ngClass]="g.icon"></i>
+                    <div class="fw-semibold">{{ g.name }}</div>
+                  </div>
+                  <span class="badge text-bg-light border">{{ g.enabled.length }} enabled</span>
+                </div>
+
+                <div class="chips">
+                  <ng-container *ngFor="let k of g.enabled | keyvalue; let i = index">
+                    @if(k.value?.toString().toLowerCase().includes((featureFilter || '').toLowerCase())){
+                        <span data-bs-toggle="tooltip"  [attr.title]="k.value" class="chip on">
+                          <i class="bi bi-check2-circle"></i> {{ k.value }}
+                        </span>
+                    }
+                  </ng-container>
+                  <ng-container *ngFor="let k of g.disabled | keyvalue">
+                    @if(k.value?.toString().toLowerCase().includes((featureFilter || '').toLowerCase())){
+                        <span data-bs-toggle="tooltip"  [attr.title]="k.value" class="chip off">
+                          <i class="bi bi-x-circle"></i> {{ k.value }}
+                        </span>
+                    }
+                  </ng-container>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Raw JSON for diagnostics (collapsible) -->
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <details class="json-dump">
+        <summary class="small text-muted">Raw payload (for debugging)</summary>
+        <pre class="mt-2 p-3 bg-body-tertiary border rounded small">{{ userDetails | json }}</pre>
+      </details>
+    </div>
+  </div>
+</div>

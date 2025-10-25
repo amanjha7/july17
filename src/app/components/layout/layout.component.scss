@@ -1,0 +1,42 @@
+.layout-container {
+  display: flex;
+  height: 100vh; // Full viewport height
+  overflow: hidden; // Hide outer scroll
+}
+
+// Sidebar: sticky (visible always)
+.sticky-sidebar {
+  flex: 0 0 250px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  z-index: 1020; // Higher to stay on top
+}
+
+// Content container
+.content-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+// Header: sticky
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  background: #fff;
+  border-bottom: 1px solid #dee2e6;
+}
+
+// Main content area
+.content {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: 1rem;
+
+  // Optional: Smooth scrolling
+  scroll-behavior: smooth;
+}

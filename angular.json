@@ -30,7 +30,9 @@
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "bootstrap/dist/css/bootstrap.min.css",
+              "bootstrap-icons/font/bootstrap-icons.css"
             ]
           },
           "configurations": {

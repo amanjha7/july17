@@ -1,0 +1,41 @@
+<section class="zwc-feature-section">
+  <div class="content-wrap animated">
+    
+    <!-- Title -->
+    <header class="section-header text-center">
+      <h2 class="section-title">How to Create a Webhook</h2>
+      <p class="section-subtitle">
+        Webhooks in Zoho Sign can be created in three simple steps using the Zoho Sign web app.
+      </p>
+    </header>
+
+    @for (step of steps; track $index) {
+    <div class="step mb-4">
+        <h5>{{ step.title }}</h5>
+
+        <ng-container *ngIf="!step.hasCallback">
+        <p>{{ step.description }}</p>
+        </ng-container>
+
+        <ng-container *ngIf="step.hasCallback">
+        <p>
+            Add the callback URL below and select the events:
+        </p>
+        <div class="callback-box">
+            <button class="copy-btn" (click)="copyUrl()">
+            {{ url }}/app/common/webhook
+            </button>
+            <span *ngIf="copied" class="copied-msg">✅ Copied!</span>
+        </div>
+        <p>
+            <b>Events:</b> Document events > Completed by all, Recipient events > Signed by a recipient
+        </p>
+        </ng-container>
+
+        <img [src]="step.image" [alt]="step.title" class="instruction-image" />
+    </div>
+    }
+
+
+  </div>
+</section>

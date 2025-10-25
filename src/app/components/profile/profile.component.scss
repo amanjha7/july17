@@ -1,0 +1,60 @@
+
+// =========================== profile.component.scss ===========================
+/* 
+  SCSS by Aman Jha 
+*/
+.profile-wrap {
+  .card { border-radius: 1rem; }
+
+  .logo-circle {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--bs-body-tertiary);
+    font-size: 1.35rem;
+  }
+
+  .stats .stat-card { min-width: 150px; }
+  .stat-card .label { font-size: .8rem; color: var(--bs-secondary-color); }
+  .stat-card .value { font-weight: 600; }
+
+  // Radial percentage without heavy chart libs
+  .radial {
+    --p: 0%;
+    width: 64px; height: 64px; border-radius: 50%;
+    background: conic-gradient(var(--bs-success) var(--p), var(--bs-border-color) 0);
+    display: grid; place-items: center;
+  }
+  .radial-inner {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: white; display: grid; place-items: center;
+    font-weight: 700; font-size: .9rem;
+  }
+
+  // Capability chips: at-a-glance toggles
+  .cap-chip {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .35rem .6rem; border-radius: 999px; font-weight: 500;
+    background: var(--bs-success-bg-subtle); color: var(--bs-success-text);
+    border: 1px solid var(--bs-success-border-subtle);
+  }
+  .cap-chip.disabled {
+    background: var(--bs-body-bg); color: var(--bs-secondary-color);
+    border-color: var(--bs-border-color);
+    text-decoration: line-through; opacity: .75;
+  }
+
+  .group-card { border: 1px solid var(--bs-border-color); border-radius: .8rem; padding: .85rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    border: 1px solid; padding: .25rem .5rem; border-radius: .6rem;
+    font-size: .8rem; font-weight: 500;
+  }
+  .chip.on { color: var(--bs-success-text); border-color: var(--bs-success-border-subtle); background: var(--bs-success-bg-subtle); }
+  .chip.off { color: var(--bs-secondary-color); border-color: var(--bs-border-color); background: var(--bs-body-bg); text-decoration: line-through; }
+
+  details.json-dump summary { cursor: pointer; }
+
+  .search-feature:focus {outline: none !important;box-shadow: none !important;border-color: #566 !important;}
+
+}
