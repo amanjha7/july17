@@ -122,11 +122,10 @@ generateCode(inbox_id: string) {
           showAgentAvailability: false,
           agentAvailableText: "We're online right now!",
           agentUnavailableText: "We're away at the moment.",
-          requireEmailUpfront: false,
+          requireEmailUpfront: true,
           iconVariant: "outlined",
           baseUrl: "https://developerapithree.pronnel.com/",
           iframeUrlOverride: "http://localhost:8080",
-          debug: false
         }
       };
     </script>
