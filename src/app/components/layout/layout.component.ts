@@ -109,7 +109,6 @@ generateCode(inbox_id: string) {
   return `
   <html>
   <body>
-    <h1>PaperCups</h1>
     <script>
       window.Papercups = {
         config: {
