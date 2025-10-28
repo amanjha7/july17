@@ -121,19 +121,18 @@ generateCode(inbox_id: string) {
           showAgentAvailability: false,
           agentAvailableText: "We're online right now!",
           agentUnavailableText: "We're away at the moment.",
-          requireEmailUpfront: true,
+          requireEmailUpfront: false,
           iconVariant: "outlined",
           baseUrl: "https://developerapithree.pronnel.com/",
-          iframeUrlOverride: "http://localhost:8080",
+          iframeUrlOverride: "https://d2et9syq1vvqzd.cloudfront.net",
+          customer: {
+            name: "Guest",
+            email: "guest@gmail.com"
+          },
         }
       };
     </script>
-    <script
-      type="text/javascript"
-      async
-      defer
-      src="https://developerapithree.pronnel.com/widget.js"
-    ></script>
+    <script type="text/javascript" async defer src="https://developerapithree.pronnel.com/widget.js"></script>
   </body>
 </html>
   `;
