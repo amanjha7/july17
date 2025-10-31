@@ -112,7 +112,7 @@ generateCode(inbox_id: string) {
     <script>
       window.Papercups = {
         config: {
-          token: "98e287e3-0daa-4db0-bf03-303c0425ce87",
+          token: "0e147a0b-844c-4aa8-a97f-653edf8d3e46",
           inbox: "${inbox_id}",
           title: "Welcome to Your company",
           subtitle: "Ask us anything in the chat window below 😊",
