@@ -121,14 +121,10 @@ generateCode(inbox_id: string) {
           showAgentAvailability: false,
           agentAvailableText: "We're online right now!",
           agentUnavailableText: "We're away at the moment.",
-          requireEmailUpfront: false,
+          requireEmailUpfront: true,
           iconVariant: "outlined",
           baseUrl: "https://developerapithree.pronnel.com/",
-          iframeUrlOverride: "https://d2et9syq1vvqzd.cloudfront.net",
-          customer: {
-            name: "Guest",
-            email: "guest@gmail.com"
-          },
+          iframeUrlOverride: "https://webchat.pronnel.com/",
         }
       };
     </script>
