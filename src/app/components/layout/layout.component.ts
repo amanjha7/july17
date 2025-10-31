@@ -123,12 +123,12 @@ generateCode(inbox_id: string) {
           agentUnavailableText: "We're away at the moment.",
           requireEmailUpfront: true,
           iconVariant: "outlined",
-          baseUrl: "https://developerapithree.pronnel.com/",
-          iframeUrlOverride: "https://webchat.pronnel.com/",
+          baseUrl: "https://webchat.pronnel.com",
+          iframeUrlOverride: "https://webchat.pronnel.com/papercupsiframe",
         }
       };
     </script>
-    <script type="text/javascript" async defer src="https://developerapithree.pronnel.com/widget.js"></script>
+    <script type="text/javascript" async defer src="https://webchat.pronnel.com/widget.js"></script>
   </body>
 </html>
   `;
