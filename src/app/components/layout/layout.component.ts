@@ -119,6 +119,7 @@ generateCode(inbox_id: string) {
             primaryColor: "#1890ff",
             newMessagePlaceholder: "Start typing...",
             iconVariant: "outlined",
+            baseUrl: "https://webchat.pronnel.com",
             iframeUrlOverride: "https://webchatiframe.pronnel.com",
           }
         };
