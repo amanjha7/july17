@@ -28,6 +28,7 @@ export class LayoutComponent {
   isSharedUser:boolean =false;
   baseUrl:string='https://plugins.pronnel.com/app31'
   inbox_id=''
+  account_id:string=''
 code: string =` `;
 
 
@@ -61,7 +62,8 @@ code: string =` `;
               this.isAuthenticated = true;
               this.initialLoading=false;
               this.inbox_id = response?.body?.inbox_id;
-              this.code = this.generateCode(this.inbox_id);
+              this.account_id = response?.body?.account_id;
+              this.code = this.generateCode(this.inbox_id, this.account_id);
               this.cdr.detectChanges();
               console.log(' resp ',response?.body, this.inbox_id )
             } else {
@@ -69,7 +71,7 @@ code: string =` `;
                   next: (resp:any)=>{
                     if(resp.inbox_id){
                       this.inbox_id = resp.inbox_id
-                        this.code = this.generateCode(this.inbox_id);
+                        this.code = this.generateCode(this.inbox_id, this.account_id);
                         this.cdr.detectChanges();
                     }
                   },error:()=>{
@@ -105,14 +107,14 @@ code: string =` `;
   };
 
 
-generateCode(inbox_id: string) {
+generateCode(inbox_id: string, account_id:string) {
   return `
   <html>
     <body>
       <script>
         window.Papercups = {
           config: {
-            token: "0e147a0b-844c-4aa8-a97f-653edf8d3e46",
+            token: "${account_id}",
             inbox: "${inbox_id}",
             title: "Welcome to Your company",
             subtitle: "Ask us anything in the chat window below 😊",
