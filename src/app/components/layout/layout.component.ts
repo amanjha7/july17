@@ -108,29 +108,27 @@ code: string =` `;
 generateCode(inbox_id: string) {
   return `
   <html>
-  <body>
-    <script>
-      window.Papercups = {
-        config: {
-          token: "0e147a0b-844c-4aa8-a97f-653edf8d3e46",
-          inbox: "${inbox_id}",
-          title: "Welcome to Your company",
-          subtitle: "Ask us anything in the chat window below 😊",
-          primaryColor: "#1890ff",
-          newMessagePlaceholder: "Start typing...",
-          showAgentAvailability: false,
-          agentAvailableText: "We're online right now!",
-          agentUnavailableText: "We're away at the moment.",
-          requireEmailUpfront: true,
-          iconVariant: "outlined",
-          baseUrl: "https://webchat.pronnel.com",
-          iframeUrlOverride: "https://webchat.pronnel.com/papercupsiframe",
-        }
-      };
-    </script>
-    <script type="text/javascript" async defer src="https://webchat.pronnel.com/widget.js"></script>
-  </body>
-</html>
+    <body>
+      <script>
+        window.Papercups = {
+          config: {
+            token: "0e147a0b-844c-4aa8-a97f-653edf8d3e46",
+            inbox: "${inbox_id}",
+            title: "Welcome to Your company",
+            subtitle: "Ask us anything in the chat window below 😊",
+            primaryColor: "#1890ff",
+            newMessagePlaceholder: "Start typing...",
+            iconVariant: "outlined",
+            iframeUrlOverride: "https://webchatiframe.pronnel.com",
+          }
+        };
+      </script>
+      <script type="text/javascript" async defer src="https://webchat.pronnel.com/widget.js"></script>
+      <script type="text/javascript">
+        window.addEventListener('message', (event) => {if (!event.data?.fileUrl) return;window.open(event.data.fileUrl, '_blank', 'noopener,noreferrer');});
+      </script>
+    </body>
+  </html>
   `;
 }
 
