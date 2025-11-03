@@ -121,15 +121,13 @@ generateCode(inbox_id: string, account_id:string) {
             primaryColor: "#1890ff",
             newMessagePlaceholder: "Start typing...",
             iconVariant: "outlined",
+            requireEmailUpfront: true,
             baseUrl: "https://webchat.pronnel.com",
             iframeUrlOverride: "https://webchatiframe.pronnel.com",
           }
         };
       </script>
       <script type="text/javascript" async defer src="https://webchat.pronnel.com/widget.js"></script>
-      <script type="text/javascript">
-        window.addEventListener('message', (event) => {if (!event.data?.fileUrl) return;window.open(event.data.fileUrl, '_blank', 'noopener,noreferrer');});
-      </script>
     </body>
   </html>
   `;
