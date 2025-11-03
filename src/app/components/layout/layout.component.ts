@@ -58,11 +58,14 @@ code: string =` `;
         this.appService.validateConnection().subscribe({
           next : (response:any) =>{
             console.log('Connection validated:', response);
+            if(response?.body){
+            this.account_id = response?.body?.account_id;
+            this.cdr.detectChanges();
+          }
             if(response?.body?.status === 'success'){
               this.isAuthenticated = true;
               this.initialLoading=false;
               this.inbox_id = response?.body?.inbox_id;
-              this.account_id = response?.body?.account_id;
               this.code = this.generateCode(this.inbox_id, this.account_id);
               this.cdr.detectChanges();
               console.log(' resp ',response?.body, this.inbox_id )
