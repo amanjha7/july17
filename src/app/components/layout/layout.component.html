@@ -14,6 +14,10 @@
           <app-profile [userDetails]="userDetails"></app-profile>
         }
 
+        @case ('channel') {
+          <app-channel></app-channel>
+        }
+
         @default {
           <app-webhook [code]="code"></app-webhook>
         }

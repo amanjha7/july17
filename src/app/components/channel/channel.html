@@ -1,0 +1,9 @@
+<div>
+    <h2 class="text-center">How to Create a External App Channel of Live Chat</h2>
+        <div *ngFor="let step of channelCreationSteps" class="step">
+        <h5>{{ step.title }}</h5>
+        <p [innerHTML]="step.description"></p>
+        <img [src]="step.image" [alt]="step.title" class="instruction-image">
+        </div>
+
+</div>

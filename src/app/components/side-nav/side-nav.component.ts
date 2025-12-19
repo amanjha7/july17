@@ -10,8 +10,8 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./side-nav.component.scss']
 })
 export class SideNavComponent {
-  @Input() selectedTab: 'profile' | 'code' = 'code';
-  @Output() selectedTabChange = new EventEmitter<'profile' | 'code'>();
+  @Input() selectedTab: 'profile' | 'code'  | 'channel'= 'channel';
+  @Output() selectedTabChange = new EventEmitter<'profile' | 'code' | 'channel'>();
   isCollapsed: boolean = false;
 
   @Input() isAuthenticated = false;
@@ -20,7 +20,7 @@ export class SideNavComponent {
   isSubMenuOpen = false;
   selectedAppStep: 'TEAMS' | 'WORKFLOW' | 'RECORDING' | null = null;
 
-  selectTab(tab: 'profile' | 'code') {
+  selectTab(tab: 'profile' | 'code' | 'channel') {
     this.selectedTab = tab;
     this.selectedTabChange.emit(tab);
 

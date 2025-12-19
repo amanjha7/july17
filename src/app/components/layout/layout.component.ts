@@ -10,11 +10,13 @@ import { LoaderComponent } from '../loader/loader.component';
 import { ProfileComponent } from '../profile/profile.component';
 import { Webhook } from '../code/code';
 import { ChangeDetectorRef } from '@angular/core';
+import { Channel } from '../channel/channel';
+
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports:[SideNavComponent, CommonModule, LoaderComponent, ProfileComponent, Webhook],
+  imports:[SideNavComponent, CommonModule, LoaderComponent, ProfileComponent, Channel, Webhook],
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss']
 })
@@ -35,7 +37,7 @@ code: string =` `;
 
   successMessage = '';
   errorMessage = '';
-  selectedTab: 'profile' | 'code' = 'code';
+  selectedTab: 'profile' | 'code'  | 'channel' = 'channel';
   selectedAppSteps: 'TEAMS' | 'WORKFLOW' | 'RECORDING' = 'TEAMS';
   loggedout : boolean | null =null;
   userDetails: any; 
