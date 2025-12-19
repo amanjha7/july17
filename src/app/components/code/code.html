@@ -1,12 +1,44 @@
-<div class="code-card" *ngIf="code">
-  <div class="code-header">
-    <span class="title">HTML Code Snippet</span>
-    <button class="copy-btn" (click)="copyCode()">
-      <i class="fa-solid fa-copy"></i> Copy
-    </button>
+<div class="integration-card" *ngIf="renderedCode">
+  <h5>Chat Widget Integration</h5>
+
+  <!-- Toggles -->
+  <div class="config-panel">
+    <div class="config-item">
+      <span>Require Email</span>
+      <label class="switch">
+        <input
+          type="checkbox"
+          [(ngModel)]="requireEmail"
+          (change)="toggleChanged()"
+        />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="config-item">
+      <span>Require Mobile</span>
+      <label class="switch">
+        <input
+          type="checkbox"
+          [(ngModel)]="requireMobile"
+          (change)="toggleChanged()"
+        />
+        <span class="slider"></span>
+      </label>
+    </div>
   </div>
 
-  <pre><code class="language-html" [textContent]="code"></code></pre>
+  <!-- Code -->
+  <div class="code-card">
+    <div class="code-header">
+      <span>Embed Code</span>
+      <button class="copy-btn" (click)="copyCode()">Copy</button>
+    </div>
 
-  <div class="copied-toast" *ngIf="copied">Copied ✅</div>
+    <pre>
+      <code class="language-html" [textContent]="renderedCode"></code>
+    </pre>
+  </div>
+
+  <div class="copied-toast" *ngIf="copied">Copied</div>
 </div>

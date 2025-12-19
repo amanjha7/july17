@@ -129,6 +129,11 @@ generateCode(inbox_id: string, account_id:string) {
             requireEmailUpfront: true,
             baseUrl: "https://webchat.pronnel.com",
             iframeUrlOverride: "https://webchatiframe.pronnel.com",
+            customer:{
+              metadata:{
+                mobile: true
+              }
+            }
           }
         };
       </script>
