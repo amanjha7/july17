@@ -31,6 +31,8 @@ export class LayoutComponent {
   baseUrl:string='https://plugins.pronnel.com/app31'
   inbox_id=''
   account_id:string=''
+  webchatBaseUrl: string = 'https://webchat.pronnel.com';
+  iframeUrlOverride: string = 'https://webchatiframe.pronnel.com';
 code: string =` `;
 
 
@@ -62,6 +64,8 @@ code: string =` `;
             console.log('Connection validated:', response);
             if(response?.body){
             this.account_id = response?.body?.account_id;
+            this.webchatBaseUrl = response?.body?.base_url || this.webchatBaseUrl;
+            this.iframeUrlOverride = response?.body?.iframe_override_url || this.iframeUrlOverride;
             this.cdr.detectChanges();
           }
             if(response?.body?.status === 'success'){
@@ -76,6 +80,8 @@ code: string =` `;
                   next: (resp:any)=>{
                     if(resp.inbox_id){
                       this.inbox_id = resp.inbox_id
+                        this.webchatBaseUrl = resp?.base_url || this.webchatBaseUrl;
+                        this.iframeUrlOverride = resp?.iframe_override_url || this.iframeUrlOverride;
                         this.code = this.generateCode(this.inbox_id, this.account_id);
                         this.cdr.detectChanges();
                     }
@@ -127,8 +133,8 @@ generateCode(inbox_id: string, account_id:string) {
             newMessagePlaceholder: "Start typing...",
             iconVariant: "outlined",
             requireEmailUpfront: true,
-            baseUrl: "https://webchat.pronnel.com",
-            iframeUrlOverride: "https://webchatiframe.pronnel.com",
+            baseUrl: "${this.webchatBaseUrl}",
+            iframeUrlOverride: "${this.iframeUrlOverride}",
             customer:{
               metadata:{
                 mobile: true
@@ -137,7 +143,7 @@ generateCode(inbox_id: string, account_id:string) {
           }
         };
       </script>
-      <script type="text/javascript" async defer src="https://webchat.pronnel.com/widget.js"></script>
+      <script type="text/javascript" async defer src="${this.webchatBaseUrl}/widget.js"></script>
     </body>
   </html>
   `;
