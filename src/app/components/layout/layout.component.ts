@@ -143,7 +143,7 @@ generateCode(inbox_id: string, account_id:string) {
           }
         };
       </script>
-      <script type="text/javascript" async defer src="${this.webchatBaseUrl}/widget.js"></script>
+      <script type="text/javascript" async defer src="https://webchat.pronnel.com/widget.js"></script>
     </body>
   </html>
   `;
