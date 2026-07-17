@@ -4,6 +4,8 @@ const { Types } = mongoose;
 const leadSchema = mongoose.Schema({
     visitor_id: { type: String, required: true, index: true },
     tracking_token: { type: String, required: true, index: true },
+    connection_id: { type: mongoose.Schema.Types.ObjectId, ref: 'connection', index: true },
+    pronnel_user_id: { type: mongoose.Schema.Types.ObjectId, index: true },
     name: { type: String, default: '' },
     email: { type: String, default: '' },
     phone: { type: String, default: '' },

@@ -63,7 +63,7 @@ const fetchAccessToken = async function (data) {
         return accessToken;
     }
     catch (err) {
-        logger.error('Error encountered in fetchAccessToken(). Error is : ', err);
+        logger.error(`Error encountered in fetchAccessToken(). Error is : ${err}`);
         throw err;
     }
 }

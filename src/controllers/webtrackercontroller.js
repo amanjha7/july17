@@ -7,7 +7,7 @@ const { logger } = require('../config/logger');
 
 // POST /app/webtracker/config
 const saveConfig = async (req, res) => {
-    logger.info('Entering saveConfig() controller.');
+    logger.info(`Entering saveConfig() controller.`);
     try {
         const context = req.session?.context || {};
         const data = {
@@ -28,7 +28,7 @@ const saveConfig = async (req, res) => {
             config
         });
     } catch (err) {
-        logger.error('Error in saveConfig():', err);
+        logger.error(`Error in saveConfig(): ${err}`);
         res.status(500).json({ error: 'Failed to save configuration' });
     }
 };
@@ -42,7 +42,7 @@ const getConfig = async (req, res) => {
         }
         res.status(200).json(config);
     } catch (err) {
-        logger.error('Error in getConfig():', err);
+        logger.error(`Error in getConfig(): ${err}`);
         res.status(500).json({ error: 'Failed to fetch configuration' });
     }
 };
@@ -54,7 +54,7 @@ const getLeads = async (req, res) => {
         const leads = await webtrackerService.getLeads(token);
         res.status(200).json(leads);
     } catch (err) {
-        logger.error('Error in getLeads():', err);
+        logger.error(`Error in getLeads(): ${err}`);
         res.status(500).json({ error: 'Failed to fetch leads' });
     }
 };
@@ -68,7 +68,7 @@ const getLeadDetails = async (req, res) => {
         }
         res.status(200).json(lead);
     } catch (err) {
-        logger.error('Error in getLeadDetails():', err);
+        logger.error(`Error in getLeadDetails(): ${err}`);
         res.status(500).json({ error: 'Failed to fetch lead details' });
     }
 };
@@ -83,7 +83,7 @@ const getLeadEvents = async (req, res) => {
         const events = await webtrackerService.getLeadEvents(lead.visitor_id);
         res.status(200).json(events);
     } catch (err) {
-        logger.error('Error in getLeadEvents():', err);
+        logger.error(`Error in getLeadEvents(): ${err}`);
         res.status(500).json({ error: 'Failed to fetch lead events' });
     }
 };
@@ -97,7 +97,7 @@ const getSessionRecording = async (req, res) => {
             events
         });
     } catch (err) {
-        logger.error('Error in getSessionRecording():', err);
+        logger.error(`Error in getSessionRecording(): ${err}`);
         res.status(500).json({ error: 'Failed to fetch session recording' });
     }
 };
@@ -109,7 +109,7 @@ const getStats = async (req, res) => {
         const stats = await webtrackerService.getStats(token);
         res.status(200).json(stats);
     } catch (err) {
-        logger.error('Error in getStats():', err);
+        logger.error(`Error in getStats(): ${err}`);
         res.status(500).json({ error: 'Failed to fetch stats' });
     }
 };
@@ -144,7 +144,7 @@ function parseUserAgent(uaString) {
 
 // POST /app/webtracker/track
 const trackEvent = async (req, res) => {
-    logger.info('Entering trackEvent() controller.');
+    logger.info(`Entering trackEvent() controller.`);
     try {
         const { token, visitor_id, session_id, event_type, properties } = req.body;
 
@@ -168,8 +168,6 @@ const trackEvent = async (req, res) => {
         let city = 'Unknown';
         let region = 'Unknown';
 
-        // For local development or loopback addresses, let's fall back to mock location for insights if desired, or keep Unknown.
-        // Let's do a standard geoip lookup
         const geo = geoip.lookup(ip);
         if (geo) {
             country = geo.country || 'Unknown';
@@ -185,58 +183,35 @@ const trackEvent = async (req, res) => {
         const ua = req.headers['user-agent'] || '';
         const { browser, os, device } = parseUserAgent(ua);
 
-        // Find or create lead/visitor
-        let lead = await Lead.findOne({ visitor_id, tracking_token: token });
-        if (!lead) {
-            lead = new Lead({
-                visitor_id,
-                tracking_token: token,
-                ip,
-                country,
-                city,
-                region,
-                browser,
-                os,
-                device,
-                first_seen: Date.now(),
-                last_seen: Date.now()
-            });
-            await lead.save();
-            logger.info(`Created new Lead for visitor_id: ${visitor_id}`);
-        } else {
-            lead.last_seen = Date.now();
-            // Update location/device details if they were Unknown or changed
-            if (lead.ip !== ip && ip) {
-                lead.ip = ip;
-                if (geo) {
-                    lead.country = geo.country || lead.country;
-                    lead.city = geo.city || lead.city;
-                    lead.region = geo.region || lead.region;
-                }
-            }
-            await lead.save();
-        }
+        // Queue background job
+        const { WebtrackerJobsService } = require('../../services/webtrackerjobsservice/webtrackerjobsservice');
+        const { TrackEventJob } = require('../../services/webtrackerjobsservice/jobs/TrackEventJob');
 
-        // Save event
-        const newEvent = new Event({
+        await WebtrackerJobsService.getInstance().queueJob(new TrackEventJob({
+            token,
             visitor_id,
             session_id,
-            tracking_token: token,
             event_type,
-            properties: properties || {}
-        });
-        await newEvent.save();
+            properties: properties || {},
+            ip,
+            country,
+            city,
+            region,
+            browser,
+            os,
+            device
+        }));
 
         res.status(200).json({ success: true, message: 'Event tracked successfully' });
     } catch (err) {
-        logger.error('Error in trackEvent():', err);
+        logger.error(`Error in trackEvent(): ${err}`);
         res.status(500).json({ error: 'Failed to track event' });
     }
 };
 
 // POST /app/webtracker/identify
 const identifyVisitor = async (req, res) => {
-    logger.info('Entering identifyVisitor() controller.');
+    logger.info(`Entering identifyVisitor() controller.`);
     try {
         const { token, visitor_id, name, email, phone } = req.body;
 
@@ -244,63 +219,47 @@ const identifyVisitor = async (req, res) => {
             return res.status(400).json({ error: 'token and visitor_id are required' });
         }
 
-        // Find lead
-        let lead = await Lead.findOne({ visitor_id, tracking_token: token });
-        if (!lead) {
-            // Create a lead if doesn't exist
-            let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
-            if (ip.includes(',')) ip = ip.split(',')[0].trim();
-            let country = 'Unknown', city = 'Unknown', region = 'Unknown';
-            const geo = geoip.lookup(ip);
-            if (geo) {
-                country = geo.country;
-                city = geo.city;
-                region = geo.region;
-            } else if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') {
-                country = 'US'; city = 'San Francisco'; region = 'CA';
-            }
-            const { browser, os, device } = parseUserAgent(req.headers['user-agent']);
-
-            lead = new Lead({
-                visitor_id,
-                tracking_token: token,
-                ip,
-                country,
-                city,
-                region,
-                browser,
-                os,
-                device,
-                name: name || '',
-                email: email || '',
-                phone: phone || '',
-                first_seen: Date.now(),
-                last_seen: Date.now()
-            });
-        } else {
-            // Update existing lead details
-            if (name) lead.name = name;
-            if (email) lead.email = email;
-            if (phone) lead.phone = phone;
-            lead.last_seen = Date.now();
+        const config = await webtrackerService.getConfigByToken(token);
+        if (!config) {
+            return res.status(404).json({ error: 'Invalid or missing tracking token' });
         }
 
-        await lead.save();
-        logger.info(`Identified visitor: ${visitor_id} as Name: ${lead.name}, Email: ${lead.email}, Phone: ${lead.phone}`);
+        let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+        if (ip.includes(',')) ip = ip.split(',')[0].trim();
+        let country = 'Unknown', city = 'Unknown', region = 'Unknown';
+        const geo = geoip.lookup(ip);
+        if (geo) {
+            country = geo.country || 'Unknown';
+            city = geo.city || 'Unknown';
+            region = geo.region || 'Unknown';
+        } else if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') {
+            country = 'US'; city = 'San Francisco'; region = 'CA';
+        }
+        const { browser, os, device } = parseUserAgent(req.headers['user-agent']);
 
-        // Record identity change event
-        const identityEvent = new Event({
+        // Queue background job
+        const { WebtrackerJobsService } = require('../../services/webtrackerjobsservice/webtrackerjobsservice');
+        const { IdentifyVisitorJob } = require('../../services/webtrackerjobsservice/jobs/IdentifyVisitorJob');
+
+        await WebtrackerJobsService.getInstance().queueJob(new IdentifyVisitorJob({
+            token,
             visitor_id,
             session_id: req.body.session_id || 'system-identity',
-            tracking_token: token,
-            event_type: 'identify',
-            properties: { name, email, phone }
-        });
-        await identityEvent.save();
+            name,
+            email,
+            phone,
+            ip,
+            country,
+            city,
+            region,
+            browser,
+            os,
+            device
+        }));
 
-        res.status(200).json({ success: true, message: 'Visitor identified successfully', lead });
+        res.status(200).json({ success: true, message: 'Visitor identified successfully' });
     } catch (err) {
-        logger.error('Error in identifyVisitor():', err);
+        logger.error(`Error in identifyVisitor(): ${err}`);
         res.status(500).json({ error: 'Failed to identify visitor' });
     }
 };
@@ -314,24 +273,20 @@ const saveSessionRecording = async (req, res) => {
             return res.status(400).json({ error: 'Missing or invalid parameters: token, visitor_id, session_id, and events array are required' });
         }
 
-        let recording = await SessionRecording.findOne({ session_id, tracking_token: token });
-        if (!recording) {
-            recording = new SessionRecording({
-                session_id,
-                visitor_id,
-                tracking_token: token,
-                events: events
-            });
-        } else {
-            // Append incoming rrweb events chunk
-            recording.events.push(...events);
-            recording.updated_at = Date.now();
-        }
+        // Queue background job
+        const { WebtrackerJobsService } = require('../../services/webtrackerjobsservice/webtrackerjobsservice');
+        const { SaveSessionRecordingJob } = require('../../services/webtrackerjobsservice/jobs/SaveSessionRecordingJob');
 
-        await recording.save();
+        await WebtrackerJobsService.getInstance().queueJob(new SaveSessionRecordingJob({
+            token,
+            visitor_id,
+            session_id,
+            events
+        }));
+
         res.status(200).json({ success: true, message: 'Session recording chunks appended successfully' });
     } catch (err) {
-        logger.error('Error in saveSessionRecording():', err);
+        logger.error(`Error in saveSessionRecording(): ${err}`);
         res.status(500).json({ error: 'Failed to save session recording chunks' });
     }
 };
@@ -509,7 +464,7 @@ const serveScript = async (req, res) => {
     // 4. rrweb Session Recording Integration
     function loadRrwebAndStart() {
         var script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.js';
+        script.src = 'https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.umd.min.cjs';
         script.onload = function() {
             if (!window.rrweb) return;
             var eventBuffer = [];
@@ -555,7 +510,7 @@ const serveScript = async (req, res) => {
         res.set('Content-Type', 'application/javascript');
         res.status(200).send(javascriptTemplate);
     } catch (err) {
-        logger.error('Error serving tracking script:', err);
+        logger.error(`Error serving tracking script: ${err}`);
         res.status(500).send('/* Internal server error serving tracking script */');
     }
 };
