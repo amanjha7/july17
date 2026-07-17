@@ -22,12 +22,12 @@ export class Channel {
     },
     {
       title : 'Step 3: Add New Channel',
-      description: 'Create a External App Channel of Live Chat later you can add chatbot too.',
+      description: 'Create a External App Channel of Web Tracker later you can add chatbot too.',
       image: './create_channel.png'
     },
     {
       title : 'Step 4: Save Channel',
-      description: 'Save The Channel that you have created of Live Chat (External App).',
+      description: 'Save The Channel that you have created of Web Tracker (External App).',
       image: './save_channel.png'
     }
   ]

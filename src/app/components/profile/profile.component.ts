@@ -103,7 +103,7 @@ export class ProfileComponent implements OnChanges {
     },
     {
       name: 'Developer & Integrations', icon: 'bi-braces', keys: [
-        'webhooks','redirection','Live Chat'
+        'webhooks','redirection','Web Tracker'
       ]
     },
     {
