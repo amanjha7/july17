@@ -217,4 +217,5 @@ vault/logs
 vault/policies
 vault/tmp
 
+log.out
 
