@@ -1,0 +1,33 @@
+.layout-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #09090b;
+}
+
+// Sidebar: sticky (visible always)
+.sticky-sidebar {
+  flex: 0 0 260px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  z-index: 1020;
+}
+
+// Content container
+.content-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+// Main content area
+.content {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: 1.5rem;
+  scroll-behavior: smooth;
+  background-color: #09090b;
+}

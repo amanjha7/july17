@@ -1,0 +1,168 @@
+<div class="insights-wrapper h-100 d-flex flex-column gap-4">
+
+  <!-- Top Title & Website Filter -->
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="title-glow mb-1">Live Insights</h2>
+      <p class="text-muted fs-6">Aggregated real-time metrics, conversion tracks, and geographical heatmaps.</p>
+    </div>
+
+    <div class="filter-box d-flex align-items-center gap-2">
+      <span class="text-muted fs-7 font-monospace">FILTER WEBSITE:</span>
+      <select class="form-select glass-dropdown text-white" [(ngModel)]="selectedToken" (change)="onWebsiteChange()">
+        <option *ngFor="let s of websites" [value]="s.tracking_token">{{ s.name }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="text-center py-5" *ngIf="isLoading && !stats">
+    <div class="spinner-border text-primary" role="status"></div>
+    <div class="text-muted mt-2 font-monospace">Loading live metrics...</div>
+  </div>
+
+  <!-- Stats Grid Panel -->
+  <div class="d-flex flex-column gap-4" *ngIf="stats">
+    <div class="row g-4">
+
+      <!-- Total Page Views -->
+      <div class="col-md-3">
+        <div class="glass-metric p-4 d-flex flex-column justify-content-between">
+          <div>
+            <span class="metric-label text-muted fs-8 font-monospace">TOTAL PAGE VIEWS</span>
+            <h2 class="metric-value text-white mt-2">{{ stats.pageViews }}</h2>
+          </div>
+          <div class="trend text-success d-flex align-items-center gap-1 fs-8 mt-3">
+            <i class="bi bi-graph-up-arrow"></i> +18.4% vs last week
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Visitors (Leads) -->
+      <div class="col-md-3">
+        <div class="glass-metric p-4 d-flex flex-column justify-content-between">
+          <div>
+            <span class="metric-label text-muted fs-8 font-monospace">TOTAL VISITORS</span>
+            <h2 class="metric-value text-white mt-2">{{ stats.totalLeads }}</h2>
+          </div>
+          <div class="trend text-success d-flex align-items-center gap-1 fs-8 mt-3">
+            <i class="bi bi-graph-up-arrow"></i> +12.1% vs last week
+          </div>
+        </div>
+      </div>
+
+      <!-- Identified Leads -->
+      <div class="col-md-3">
+        <div class="glass-metric p-4 d-flex flex-column justify-content-between">
+          <div>
+            <span class="metric-label text-muted fs-8 font-monospace">IDENTIFIED LEADS</span>
+            <h2 class="metric-value text-success-glow mt-2">{{ stats.identifiedLeads }}</h2>
+          </div>
+          <div class="trend text-success d-flex align-items-center gap-1 fs-8 mt-3">
+            <i class="bi bi-arrow-up-right-circle"></i> Merged anonymous visits
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Submission Rate / Conversion -->
+      <div class="col-md-3">
+        <div class="glass-metric p-4 d-flex flex-column justify-content-between">
+          <div>
+            <span class="metric-label text-muted fs-8 font-monospace">LEAD CONVERSION</span>
+            <h2 class="metric-value text-primary-glow mt-2">{{ getConversionRate() }}</h2>
+          </div>
+          <div class="trend text-muted fs-8 mt-3">
+            Identified profiles / Total
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secondary Insights Section: Geographic Heatmaps & Events Split -->
+    <div class="row g-4">
+
+      <!-- Left Panel: Geographic Locations Distribution -->
+      <div class="col-md-7">
+        <div class="glass-panel p-4 h-100">
+          <h5 class="section-title mb-4 d-flex align-items-center gap-2">
+            <i class="bi bi-map text-primary"></i> Geographic Distribution
+          </h5>
+
+          <div class="location-list d-flex flex-column gap-3">
+            <div *ngFor="let item of stats.locations | keyvalue" class="location-item">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="location-name text-white fs-7 font-monospace d-flex align-items-center gap-2">
+                  <i class="bi bi-geo-alt text-danger"></i> {{ item.key }}
+                </span>
+                <span class="location-count text-muted fs-8">{{ item.value }} visitors</span>
+              </div>
+
+              <!-- Progress Bar -->
+              <div class="progress bg-dark" style="height: 6px;">
+                <div class="progress-bar bg-primary" role="progressbar"
+                     [style.width.%]="($any(item.value) / stats.totalLeads) * 100"
+                     aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Business Funnel Summary -->
+      <div class="col-md-5">
+        <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+          <div>
+            <h5 class="section-title mb-4 d-flex align-items-center gap-2">
+              <i class="bi bi-funnel text-primary"></i> Conversion Funnel
+            </h5>
+
+            <div class="funnel-container d-flex flex-column gap-3">
+              <!-- Page View Step -->
+              <div class="funnel-step p-3 rounded d-flex justify-content-between align-items-center border border-dark bg-black-20">
+                <div class="d-flex align-items-center gap-2.5">
+                  <span class="funnel-badge bg-primary text-white">1</span>
+                  <div>
+                    <div class="step-name text-white fs-7">Land & Page View</div>
+                    <div class="step-desc text-muted fs-8">Visitor landing paths logged</div>
+                  </div>
+                </div>
+                <div class="step-count font-monospace text-white">{{ stats.pageViews }}</div>
+              </div>
+
+              <!-- Click Interaction Step -->
+              <div class="funnel-step p-3 rounded d-flex justify-content-between align-items-center border border-dark bg-black-20">
+                <div class="d-flex align-items-center gap-2.5">
+                  <span class="funnel-badge bg-warning text-white">2</span>
+                  <div>
+                    <div class="step-name text-white fs-7">Element Interactions</div>
+                    <div class="step-desc text-muted fs-8">Buttons, links and inputs clicked</div>
+                  </div>
+                </div>
+                <div class="step-count font-monospace text-white">{{ stats.clicks }}</div>
+              </div>
+
+              <!-- Form Submit Step -->
+              <div class="funnel-step p-3 rounded d-flex justify-content-between align-items-center border border-success bg-success-10">
+                <div class="d-flex align-items-center gap-2.5">
+                  <span class="funnel-badge bg-success text-white">3</span>
+                  <div>
+                    <div class="step-name text-white fs-7">Contact Identity Resolution</div>
+                    <div class="step-desc text-muted fs-8">Forms filled and user identified</div>
+                  </div>
+                </div>
+                <div class="step-count font-monospace text-success-glow">{{ stats.identifiedLeads }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Ping Banner -->
+          <div class="p-3 bg-black-40 border border-dark rounded d-flex align-items-center gap-2 mt-4">
+            <span class="pulse-indicator"></span>
+            <span class="text-muted fs-8 font-monospace">Listening for website events asynchronously...</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

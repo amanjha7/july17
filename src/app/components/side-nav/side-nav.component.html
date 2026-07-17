@@ -1,0 +1,50 @@
+<div class="side-nav p-4 d-flex flex-column h-100 justify-content-between">
+  <div>
+    <!-- Brand / Logo -->
+    <div class="brand text-center mb-5">
+      <div class="logo-icon mb-3">
+        <i class="bi bi-shield-fill-check glow-icon"></i>
+      </div>
+      <h4 class="brand-title">Pronnel Tracker</h4>
+      <span class="brand-subtitle">Web Analytics</span>
+    </div>
+
+    <!-- Nav Items -->
+    <ul class="nav flex-column nav-pills gap-2">
+      <li class="nav-item">
+        <button class="nav-link w-100 text-start d-flex align-items-center"
+                [ngClass]="{ 'active': selectedTab === 'channel' }"
+                (click)="selectTab('channel')">
+          <i class="bi bi-globe-americas me-3 fs-5"></i>
+          <span>Websites & Scripts</span>
+        </button>
+      </li>
+
+      <li class="nav-item">
+        <button class="nav-link w-100 text-start d-flex align-items-center"
+                [ngClass]="{ 'active': selectedTab === 'profile' }"
+                (click)="selectTab('profile')">
+          <i class="bi bi-people-fill me-3 fs-5"></i>
+          <span>Identified Leads</span>
+        </button>
+      </li>
+
+      <li class="nav-item">
+        <button class="nav-link w-100 text-start d-flex align-items-center"
+                [ngClass]="{ 'active': selectedTab === 'code' }"
+                (click)="selectTab('code')">
+          <i class="bi bi-activity me-3 fs-5"></i>
+          <span>Live Insights</span>
+        </button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Footer Info -->
+  <div class="nav-footer pt-3 border-top border-dark text-center">
+    <div class="d-flex align-items-center justify-content-center gap-2">
+      <span class="pulse-indicator"></span>
+      <span class="text-muted fs-7">Service Online</span>
+    </div>
+  </div>
+</div>

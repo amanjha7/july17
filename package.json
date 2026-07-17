@@ -1,21 +1,50 @@
 {
-  "name": "githubapp",
+  "name": "webtracker-mean-app",
   "version": "1.0.0",
-  "description": "A simple Node.js app to handle Ringio calling integration",
+  "description": "MEAN stack app with Webtracker backend and Angular settings page",
   "main": "dist/app.js",
   "scripts": {
     "start": "node src/app.js",
     "build": "tsc",
     "dev1environment": "export NODE_ENV=dev1 && pm2 start src/app.js -i 1 --node-args=--max_old_space_size=3000  && pm2 logs",
     "dev2environment": "export NODE_ENV=dev2 && pm2 start src/app.js -i 1 --node-args=--max_old_space_size=3000  && pm2 logs",
-    "prodenvironment": "export NODE_ENV=prod && pm2 start src/app.js -i 1 --node-args=--max_old_space_size=3000  && pm2 logs"
+    "prodenvironment": "export NODE_ENV=prod && pm2 start src/app.js -i 1 --node-args=--max_old_space_size=3000  && pm2 logs",
+    "ng": "ng",
+    "start:fe": "ng serve",
+    "build:fe": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
   },
-  "author": "Mohit Bansal",
-  "license": "MIT",
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
+  },
+  "private": true,
   "dependencies": {
+    "@angular/cdk": "^20.2.1",
+    "@angular/common": "^20.2.0",
+    "@angular/compiler": "^20.2.0",
+    "@angular/core": "^20.2.0",
+    "@angular/forms": "^20.2.0",
+    "@angular/localize": "^20.3.1",
+    "@angular/material": "^20.2.1",
+    "@angular/platform-browser": "^20.2.0",
+    "@angular/router": "^20.2.0",
+    "@ng-bootstrap/ng-bootstrap": "^19.0.1",
+    "@popperjs/core": "^2.11.8",
     "axios": "^1.2.4",
     "base-64": "^1.0.0",
     "body-parser": "^1.19.2",
+    "bootstrap": "^5.3.6",
+    "bootstrap-icons": "^1.13.1",
     "bullmq": "1.85.1",
     "class-transformer": "latest",
     "cors": "^2.8.0",
@@ -26,16 +55,33 @@
     "form-data": "^4.0.0",
     "geoip-lite": "^1.4.10",
     "jsonwebtoken": "^8.5.0",
+    "jwt-decode": "^4.0.0",
     "mongoose": "5.13.20",
+    "ngx-bootstrap-icons": "^1.9.3",
     "node-cron": "^2.0.3",
     "octokit": "^4.0.2",
+    "prismjs": "^1.30.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
     "uuid": "^8.3.2",
-    "winston": "3.6.0"
+    "winston": "3.6.0",
+    "zone.js": "~0.15.0"
   },
   "devDependencies": {
+    "@angular/build": "^20.2.0",
+    "@angular/cli": "^20.2.0",
+    "@angular/compiler-cli": "^20.2.0",
     "@types/express": "^4.17.13",
+    "@types/jasmine": "~5.1.0",
     "@types/node": "^16.11.7",
+    "@types/prismjs": "^1.26.5",
+    "jasmine-core": "~5.9.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
     "ts-node": "^10.4.0",
-    "typescript": "^4.5.2"
+    "typescript": "~5.9.2"
   }
 }
