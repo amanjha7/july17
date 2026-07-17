@@ -6,7 +6,7 @@ const SessionRecording = require('../models/sessionrecording');
 const { logger } = require('../config/logger');
 
 const createOrUpdateConfig = async (data) => {
-    logger.info('Entering createOrUpdateConfig() with data: ', data);
+    logger.info(`Entering createOrUpdateConfig() with data: ${JSON.stringify(data)}`);
     const { website_url, pronnel_user_id, org_id, app_instance_id, name } = data;
 
     // Check if configuration already exists for this app instance or website
@@ -39,7 +39,7 @@ const createOrUpdateConfig = async (data) => {
         config.generated_script = generated_script;
         config.update_date = Date.now();
         await config.save();
-        logger.info('Updated existing WebtrackerConfig in DB.');
+        logger.info(`Updated existing WebtrackerConfig in DB.`);
     } else {
         config = new WebtrackerConfig({
             website_url,
@@ -51,14 +51,14 @@ const createOrUpdateConfig = async (data) => {
             name
         });
         await config.save();
-        logger.info('Created new WebtrackerConfig in DB.');
+        logger.info(`Created new WebtrackerConfig in DB.`);
     }
 
     return config;
 };
 
 const getConfig = async (id) => {
-    logger.info('Entering getConfig() with ID:', id);
+    logger.info(`Entering getConfig() with ID: ${id}`);
     return await WebtrackerConfig.findById(id);
 };
 
@@ -67,7 +67,7 @@ const getConfigByToken = async (token) => {
 };
 
 const getLeads = async (token) => {
-    logger.info('Entering getLeads() with token:', token);
+    logger.info(`Entering getLeads() with token: ${token}`);
     const filter = {};
     if (token) {
         filter.tracking_token = token;
@@ -84,13 +84,13 @@ const getLeadEvents = async (visitor_id) => {
 };
 
 const getSessionRecording = async (session_id) => {
-    logger.info('Entering getSessionRecording() for session:', session_id);
+    logger.info(`Entering getSessionRecording() for session: ${session_id}`);
     const rec = await SessionRecording.findOne({ session_id });
     return rec ? rec.events : [];
 };
 
 const getStats = async (token) => {
-    logger.info('Entering getStats() with token:', token);
+    logger.info(`Entering getStats() with token: ${token}`);
     const filter = {};
     if (token) {
         filter.tracking_token = token;

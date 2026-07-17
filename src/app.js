@@ -14,7 +14,15 @@ const mongoose = require('mongoose');
 const app = express();
 const {setCorrelationId} = require('./config/logger')
 const { BaseService } =require("../services/base/baseservice");
-app.use(cors())
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        return callback(null, origin);
+    },
+    credentials: true
+}));
+app.set('trust proxy', true);
+
 // Use setCorrelationId middleware ( for logging statement relation)
 app.use(setCorrelationId); // Set correlation ID for every request
 
@@ -48,6 +56,13 @@ mongoose.connect(process.env.MONGO_URL, {
     console.log('Connected to MongoDB');
 }).catch(err => {
     console.error('Failed to connect to MongoDB', err);
+});
+
+// Start BullMQ background services
+BaseService.startServices(['PronnelOauthService', 'WebtrackerJobsService']).then(() => {
+    console.log('Background job services started successfully.');
+}).catch(err => {
+    console.error('Failed to start background job services:', err);
 });
 
 let port = (Number(process.env.PORT)|| 22001) + (Number(process.env.SERVER_NUMBER) || 0)

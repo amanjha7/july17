@@ -5,7 +5,6 @@ const FILTER_COLUMNS = ['workfolder_id', 'org_id', 'pronnel_user_id', '_id', 'ap
 const RANGE_COLUMNS = ['create_date'];
 
 exports.saveConnection = async function (connection) {
-    connection.create_date = Date.now();
     //const loggerClass = new LoggerClass("saveConnection::", arguments)
     let connectionDocument = new ConnectionDo(connection);
     let savedDoc = await connectionDocument.save();
@@ -25,7 +24,6 @@ exports.getSavedConnection = async function (connectionFilter, columnsRequired, 
 exports.updateConnection = async function (connectionFilter, toUpdateObj) {
     //const loggerClass = new LoggerClass("updateConnection::", arguments)
     let filter = getConnectionMongoQuery(connectionFilter);
-    toUpdateObj.update_date = Date.now();
     let updatedObj = await ConnectionDo.updateOne(filter, { $set: toUpdateObj }, { upsert: true })
     //loggerClass.writeDebugLogs(updatedObj);
     return updatedObj;

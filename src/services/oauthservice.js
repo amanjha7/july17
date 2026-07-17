@@ -10,7 +10,7 @@ const { PronnelOauthService } = require('../../services/oauthservice/pronneloaut
 const { RefreshPronnelOauthTokenJob } = require('../../services/oauthservice/jobs/RefreshPronnelOauthTokenJob');
 
 const initiateAuthFlow = async (context) => {
-    logger.info('Entering initiateAuthFlow(). Context received is : ', context);
+    logger.info(`Entering initiateAuthFlow(). Context received is : ${JSON.stringify(context)}`);
     //We'll take the returnUrl from the pronnel token that is received in the authorize request
     const url = APP_URLS.GITHUB_AUTHORIZE;
     const clientId = process.env.APP_CLIENT_ID;
@@ -27,12 +27,12 @@ const initiateAuthFlow = async (context) => {
       redirect_uri: redirectUri
     });
     let returnUrl = `${url}?${params.toString()}&state=${encodeURIComponent(stateToken)}`;
-    logger.info('Leaving initiateAuthFlow(). Return Url is : ', returnUrl);
+    logger.info(`Leaving initiateAuthFlow(). Return Url is : ${returnUrl}`);
     return returnUrl;
   }
 
 const validateAndRefreshAccessToken = async function (context) {
-    logger.info('Entering validateAndRefreshAccessToken(). Context received : ', context);
+    logger.info(`Entering validateAndRefreshAccessToken(). Context received : ${JSON.stringify(context)}`);
     let filter = new ConnectionFilter();
     filter.appInstanceIdArray = context.app_instance_id;
     filter.pronnelUserIdArray = context.user_id;
@@ -41,40 +41,21 @@ const validateAndRefreshAccessToken = async function (context) {
     try {
       let result = await getSavedConnection(filter);
       if (result?.length) {
-        let data = result[0];
-        let currentTime = Date.now();
-        let accessTokenExpTime = data?.access_token_expiry_time;
-        if (currentTime > accessTokenExpTime) {
-          //Access token has expired, checking for refresh token expiry time
-          let refreshTokenExpiryTime = data?.refresh_token_expiry_time;
-          if (currentTime > refreshTokenExpiryTime) {
-            //Refresh token has also expired, will have to invoke the complete flow again.
-            logger.info('Leaving validateAndRefreshAccessToken(). currentTime > refreshTokenExpiryTime, hence returning false');
-            return false;
-          }
-          else {
-            //Refresh token has not expired yet, use it to get new access_token
-            await getAccessToken(data.refresh_token, context);
-            logger.info('Leaving validateAndRefreshAccessToken(). New access token acquired, hence returning true');
-            return true;
-          }
-        }
-        else {
-          logger.info('Leaving validateAndRefreshAccessToken(). currentTime < accessTokenExpTime, hence returning true');
-          return true;
-        }
+        logger.info(`Leaving validateAndRefreshAccessToken(). Connection exists, returning true`);
+        return true;
       }
+      logger.info(`Leaving validateAndRefreshAccessToken(). Connection does not exist, returning false`);
+      return false;
     }
     catch (err) {
-      logger.error('Error encountered in validateAndRefreshAccessToken(). Error is : ', err);
-      logger.info('Leaving validateAndRefreshAccessToken() from catch block.');
-      //some error occurred while saving details
+      logger.error(`Error encountered in validateAndRefreshAccessToken(). Error is : ${err}`);
+      logger.info(`Leaving validateAndRefreshAccessToken() from catch block.`);
       return false;
     }
   }
   
   const createNewConnection = async (data) => {
-    logger.info('Entering createNewConnection(). Data : ', data);
+    logger.info(`Entering createNewConnection(). Data : ${JSON.stringify(data)}`);
     let accountId = data?.accountId;
     let accessToken = data?.access_token;
     let config = {
@@ -92,19 +73,19 @@ const validateAndRefreshAccessToken = async function (context) {
         //Now, since the connection details are verified, save the connection details in the database
         let connectionObj = { name: data?.name, account_id: accountId, api_token: accessToken, pronnel_user_id: data?.userId, app_instance_id: data?.app_instance_id };
         let result = await saveConnection(connectionObj);
-        logger.info('Leaving createNewConnection(). New connection created. Connection id : ', result._id);
+        logger.info(`Leaving createNewConnection(). New connection created. Connection id : ${result._id}`);
         return result._id;
       }
     }
     catch (err) {
-      logger.error('Error encountered in createNewConnection(). Error is : ', err);
-      logger.error('Leaving createNewConnection() from catch block');
+      logger.error(`Error encountered in createNewConnection(). Error is : ${err}`);
+      logger.error(`Leaving createNewConnection() from catch block`);
       throw err;
     }
   };
   
   const getAccessToken = async (inputToken, context, isRefresh = false) => {
-    logger.info('Entering getAccessToken(). Input token : ', inputToken, ' and context : ', context, ' and isRefresh : ', isRefresh);
+    logger.info(`Entering getAccessToken(). Input token: ${inputToken}, context: ${JSON.stringify(context)}, isRefresh: ${isRefresh}`);
     // Exchange the authorization code for an access token
     let data = createAccessTokenApiReqData(inputToken, isRefresh);
     let config = {
@@ -118,7 +99,7 @@ const validateAndRefreshAccessToken = async function (context) {
     };
     const tokenResponse = await axios.request(config);
     let respData = tokenResponse.data;
-    logger.info('Received an access token. Data received is : ', respData);
+    logger.info(`Received an access token. Data received is : ${JSON.stringify(respData)}`);
     //enrich the response object with additional details from the session context 
     respData.pronnel_user_id = context.user_id;
     respData.app_instance_id = context.app_instance_id;
@@ -126,14 +107,14 @@ const validateAndRefreshAccessToken = async function (context) {
     respData.org_id = context.org_id;
     respData.type = 'app';
     if (isRefresh) {
-      logger.info('Received new access token using refresh token. Now updating the new tokens in already present record.');
+      logger.info(`Received new access token using refresh token. Now updating the new tokens in already present record.`);
       //If we got new access token, we only need to update specific details
       await updateConnectionDetails(respData);
     } else {
       //Check if the connection is an existing one
       let isExisting = await checkIfConnectionExists(respData);
       if (isExisting) {
-        logger.info('Received new access for a logged out connection. Now updating the new tokens in already present record.');
+        logger.info(`Received new access for a logged out connection. Now updating the new tokens in already present record.`);
         await updateConnectionDetails(respData);
       }
       else {
@@ -165,10 +146,10 @@ const validateAndRefreshAccessToken = async function (context) {
   }
 
 const checkAccessTokenStatus = async (data) => {
-    logger.info('Entering checkAccessTokenStatus(). Data : ', data);
+    logger.info(`Entering checkAccessTokenStatus(). Data : ${JSON.stringify(data)}`);
     try {
       let accessToken;
-      let refreshTokenExpiryTime;
+      let refreshToken;
       //Get the connection id from request
       let appInstanceId = data.context.app_instance_id;
       //Fetch the data related to this connectionId in the database
@@ -178,14 +159,14 @@ const checkAccessTokenStatus = async (data) => {
         let result = await getSavedConnection(filter);
         if (result?.length) {
           accessToken = result[0].access_token;
-          refreshTokenExpiryTime = result[0]?.refresh_token_expiry_time;
+          refreshToken = result[0].refresh_token;
         }
         else {
           return { "status": "failure" }
         }
       }
       catch (err) {
-        logger.error('Error encountered while fetching saved connection from db. Error is : ', err);
+        logger.error(`Error encountered while fetching saved connection from db. Error is : ${err}`);
         throw err;
       }
       const clientId = process.env.APP_CLIENT_ID;
@@ -203,54 +184,48 @@ const checkAccessTokenStatus = async (data) => {
       });
   
       if (response.status === 200) {
-        logger.info('Token status api returned HTTP 200, i.e. token is working. Access Token was : ', accessToken);
+        logger.info(`Token status api returned HTTP 200, i.e. token is working. Access Token was : ${accessToken}`);
         return { "status": "success" }
       } else {
-        logger.error('Access token is invalid or there was an issue. Access Token : ', accessToken);
-        //check if the refresh token is valid, if yes, refresh access token
-        if (Date.now() < refreshTokenExpiryTime) {
-          logger.info('Refresh token is still not expired. Getting the access token using refresh token.');
-          await getAccessToken(data.refresh_token, context);
+        logger.error(`Access token is invalid or there was an issue. Access Token : ${accessToken}`);
+        try {
+          logger.info(`Attempting to refresh access token using refresh token.`);
+          await getAccessToken(refreshToken, data.context);
           return { "status": "success" }
+        } catch (refreshErr) {
+          logger.error(`Refresh token has also failed. Returning failure status. Error: ${refreshErr}`);
+          return { "status": "failure" }
         }
-        //Refresh token has also expired, will have to invoke the complete flow again.
-        logger.info('Refresh token has also expired. Returning failure status.');
-        return { "status": "failure" }
       }
     } catch (error) {
-      logger.error('Error checking access token status:', error);
+      logger.error(`Error checking access token status: ${error}`);
       if (error.response && error.response.status === 404) {
-        logger.info('Inside catch block. Access token is invalid.');
+        logger.info(`Inside catch block. Access token is invalid.`);
       }
-      logger.info('Leaving checkAccessTokenStatus().');
+      logger.info(`Leaving checkAccessTokenStatus().`);
       return { "status": "failure" }
     }
   };
   
   const saveConnectionDetails = async (data) => {
-    logger.info('Entering saveConnectionDetails(). Data : ', data);
-    let currentTime = Date.now();
+    logger.info(`Entering saveConnectionDetails(). Data : ${JSON.stringify(data)}`);
     let accessToken = data?.access_token;
     let refreshToken = data?.refresh_token;
-    let expiresIn = data?.expires_in||3600;
-    let refreshTokenExpiresIn = data?.refresh_token_expires_in||3600;
-    let accessTokenExpiryTime = currentTime + (expiresIn * 1000);
-    let refreshTokenExpiryTime = currentTime + (refreshTokenExpiresIn * 1000);
     try {
-      let connectionObj = { access_token: accessToken, refresh_token: refreshToken, pronnel_user_id: data?.pronnel_user_id, access_token_expiry_time: accessTokenExpiryTime, refresh_token_expiry_time: refreshTokenExpiryTime, app_instance_id: data?.app_instance_id, org_id: data?.org_id, workfolder_id: data?.workfolder_id ,type: data?.type};
+      let connectionObj = { access_token: accessToken, refresh_token: refreshToken, pronnel_user_id: data?.pronnel_user_id, app_instance_id: data?.app_instance_id, org_id: data?.org_id, workfolder_id: data?.workfolder_id, type: data?.type };
       let result = await saveConnection(connectionObj);
-      logger.info('Leaving saveConnectionDetails(). Saved connection id = ', result?._id);
+      logger.info(`Leaving saveConnectionDetails(). Saved connection id = ${result?._id}`);
       return result?._id;
     }
     catch (err) {
-      logger.error('Error envountered while saving connection details. Error is : ', err);
-      logger.info('Leaving saveConnectionDetails() from catch block.');
+      logger.error(`Error encountered while saving connection details. Error is : ${err}`);
+      logger.info(`Leaving saveConnectionDetails() from catch block.`);
       throw err;
     }
   };
   
   async function checkIfConnectionExists(data) {
-    logger.info('Entering checkIfConnectionExists(). Data : ', data);
+    logger.info(`Entering checkIfConnectionExists(). Data : ${JSON.stringify(data)}`);
     let filter = new ConnectionFilter();
     filter.workfolderIdArray = data?.workfolder_id;
     filter.orgIdArray = data?.org_id;
@@ -259,38 +234,33 @@ const checkAccessTokenStatus = async (data) => {
     filter.typeArray = data?.type;
     let result = await getSavedConnection(filter);
     if (result.length > 0) {
-      logger.info('Leaving checkIfConnectionExists(). Returning TRUE');
+      logger.info(`Leaving checkIfConnectionExists(). Returning TRUE`);
       return true;
     }
     else {
-      logger.info('Leaving checkIfConnectionExists(). Returning FALSE');
+      logger.info(`Leaving checkIfConnectionExists(). Returning FALSE`);
       return false;
     }
   }
   const updateConnectionDetails = async (data) => {
-    logger.info('Entering updateConnectionDetails(). Data : ', data);
-    let currentTime = Date.now();
+    logger.info(`Entering updateConnectionDetails(). Data : ${JSON.stringify(data)}`);
     let accessToken = data?.access_token;
     let refreshToken = data?.refresh_token;
-    let expiresIn = data?.expires_in;
-    let refreshTokenExpiresIn = data?.refresh_token_expires_in;
-    let accessTokenExpiryTime = currentTime + (expiresIn * 1000);
-    let refreshTokenExpiryTime = currentTime + (refreshTokenExpiresIn * 1000);
-      //Now, since the connection details are verified, update the connection details in the database
-      let connectionObj = { access_token: accessToken, refresh_token: refreshToken, access_token_expiry_time: accessTokenExpiryTime, refresh_token_expiry_time: refreshTokenExpiryTime };
-      let filter = new ConnectionFilter();
-      filter.workfolderIdArray = data?.workfolder_id;
-      filter.orgIdArray = data?.org_id;
-      filter.appInstanceIdArray = data?.app_instance_id;
-      filter.pronnelUserIdArray = data?.pronnel_user_id;
-      let result = await updateConnection(filter, connectionObj);
-      logger.info('Leaving updateConnectionDetails(). Updated connection id : ', result?._id);
-      return result._id;
+    //Now, since the connection details are verified, update the connection details in the database
+    let connectionObj = { access_token: accessToken, refresh_token: refreshToken };
+    let filter = new ConnectionFilter();
+    filter.workfolderIdArray = data?.workfolder_id;
+    filter.orgIdArray = data?.org_id;
+    filter.appInstanceIdArray = data?.app_instance_id;
+    filter.pronnelUserIdArray = data?.pronnel_user_id;
+    let result = await updateConnection(filter, connectionObj);
+    logger.info(`Leaving updateConnectionDetails(). Updated connection id : ${result?._id}`);
+    return result._id;
   };
 
   
 const revokeToken = async (data) => {
-    logger.info("Entering revokeToken(). Data : ", data);
+    logger.info(`Entering revokeToken(). Data : ${JSON.stringify(data)}`);
     let appInstanceId = data.context?.app_instance_id;
     let accessToken = await fetchAccessToken(data);
     const clientId = process.env.APP_CLIENT_ID;
@@ -305,39 +275,39 @@ const revokeToken = async (data) => {
         }
       });
       if (response.status === 204) {
-        logger.info("Token revoked successfully");
+        logger.info(`Token revoked successfully`);
       } else {
-        logger.info('Failed to revoke token');
+        logger.info(`Failed to revoke token`);
       }
     } catch (error) {
-      logger.error('Error encountered while revoking token. Error is : ', error);
+      logger.error(`Error encountered while revoking token. Error is : ${error}`);
     } finally {
       //Delete the data from the database as well.
       let filter = new ConnectionFilter();
       filter.appInstanceIdArray = appInstanceId;
       try {
-        logger.info("Deleting the connection in finally for appInstanceId = ", appInstanceId);
+        logger.info(`Deleting the connection in finally for appInstanceId = ${appInstanceId}`);
         await deleteConnection(filter);
       }
       catch (err) {
-        logger.error('Error encountered while deleting connection for appInstanceId = ', appInstanceId, '. Error is : ', err);
+        logger.error(`Error encountered while deleting connection for appInstanceId = ${appInstanceId}. Error is : ${err}`);
       }
-      logger.info('Leaving revokeToken()');
+      logger.info(`Leaving revokeToken()`);
     }
   };
 
   const getPronnelAccessToken = async (inputToken, context, isRefresh = false) => {
-    logger.info('Entering getPronnelAccessToken(). Input token : ', inputToken, ' and context : ', context, ' and isRefresh : ', isRefresh);
+    logger.info(`Entering getPronnelAccessToken(). Input token : ${inputToken} and context : ${JSON.stringify(context)} and isRefresh : ${isRefresh}`);
     // Exchange the authorization code for an access token
     let data = {};
     if (isRefresh) {
-      logger.info('Going for a refresh token.');
+      logger.info(`Going for a refresh token.`);
       data = qs.stringify({
         client_id: process.env.PRONNEL_CLIENT_ID, client_secret: process.env.PRONNEL_CLIENT_SECRET,
         grant_type: 'refresh_token', refresh_token: inputToken
       });}
     else {
-      logger.info('Going for an access token.');
+      logger.info(`Going for an access token.`);
       data = qs.stringify({
         code: inputToken, client_id: process.env.PRONNEL_CLIENT_ID, client_secret: process.env.PRONNEL_CLIENT_SECRET,grant_type: 'authorization_code'
       });
@@ -353,7 +323,7 @@ const revokeToken = async (data) => {
     };
     const tokenResponse = await axios.request(config);
     let respData = tokenResponse.data;
-    logger.info('Received an access token. Data received is : ', respData);
+    logger.info(`Received an access token. Data received is : ${JSON.stringify(respData)}`);
     //enrich the response object with additional details from the session context 
     respData.pronnel_user_id = context.user_id;
     respData.app_instance_id = context.app_instance_id;
@@ -361,14 +331,14 @@ const revokeToken = async (data) => {
     respData.org_id = context.org_id;
     respData.type = 'pronnel';
     if (isRefresh) {
-      logger.info('Received new access token using refresh token. Now updating the new tokens in already present record.');
+      logger.info(`Received new access token using refresh token. Now updating the new tokens in already present record.`);
       //If we got new access token, we only need to update specific details
       await updateConnectionDetails(respData);
     } else {
       //Check if the connection is an existing one
       let isExisting = await checkIfConnectionExists(respData);
       if (isExisting) {
-        logger.info('Received new access for a logged out connection. Now updating the new tokens in already present record.');
+        logger.info(`Received new access for a logged out connection. Now updating the new tokens in already present record.`);
         await updateConnectionDetails(respData);
       }
       else {
