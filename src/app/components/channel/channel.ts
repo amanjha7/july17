@@ -54,14 +54,14 @@ export class Channel implements OnInit {
               _id: 'default_site',
               name: 'My Primary E-Commerce Store',
               website_url: 'https://my-store.com',
-              tracking_token: '84ab607d-8e07-4ca9-a068-6d3a18ee50a7',
+              tracking_token: 'mock_tracking_token_value',
               generated_script: `<!-- Pronnel Webtracker Snippet -->
 <script type="text/javascript">
   (function() {
     var s = document.createElement('script');
     s.type = 'text/javascript';
     s.async = true;
-    s.src = '${this.appService.baseUrl}/app/webtracker/script/84ab607d-8e07-4ca9-a068-6d3a18ee50a7';
+    s.src = '${this.appService.baseUrl}/app/webtracker/script/mock_tracking_token_value';
     var x = document.getElementsByTagName('script')[0];
     x.parentNode.insertBefore(s, x);
   })();
