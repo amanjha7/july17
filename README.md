@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-# AppBaseTemplateBackend
-
-Whenever you clone for new App.. Following changes are required (All are mandatory)
-1) Change in .gitlab.yml - Change App name to your desired name
-2) In dev.env file Choose port from 22000 to 23000 in the following order.. 22001, 22011,22021 (Diff of 10)
-3) In dev.env file change the Mongo database name
-
-
-Use branch devenvironment
-=======
 # LiveChatSettings
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.2.0.
@@ -68,4 +57,3 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
->>>>>>> origin/frontend

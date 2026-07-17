@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
-import { catchError, delay, map, Observable, throwError } from 'rxjs';
+import { catchError, map, Observable, throwError } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 
 @Injectable({
@@ -9,10 +9,9 @@ import { jwtDecode } from 'jwt-decode';
 export class Appservice {
   constructor(private http: HttpClient) {}
 
-  public baseUrl: string = 'http://localhost:22611'; // Will be overridden dynamically by JWT Token or host URL
+  public baseUrl: string = 'http://localhost:22611'; // Overridden dynamically by token
   public token: string = '';
   public appInstanceId: string = '';
-  public externalapp_version_id: any = '';
 
   private getHeaders(): HttpHeaders {
     return new HttpHeaders({

@@ -35,15 +35,6 @@ export class Channel implements OnInit {
     this.isLoading = true;
     this.appService.getLeads().subscribe({
       next: () => {
-        // We can load website configurations by fetching stats or configs if available,
-        // but since we only have public and general config APIs, let's fetch stats or configs.
-        // Let's call getStats to see if we can get config info, or just maintain a client-side config state,
-        // or check our config endpoint. Wait, the stats or configs can be fetched dynamically.
-        // Since we want to support multiple connections, let's fetch any active configs by saving them
-        // and loading them. For mock lists or actual lists, let's fetch configs.
-        // Wait, the backend has config endpoints: GET /app/webtracker/config/:id and save configs.
-        // Let's retrieve configurations from local storage or mock standard defaults if we're bootstrapping,
-        // and load from database on demand!
         const stored = localStorage.getItem('pronnel_websites_list');
         if (stored) {
           this.websites = JSON.parse(stored);
@@ -123,20 +114,16 @@ export class Channel implements OnInit {
     this.appService.saveWebtrackerConfig(payload).subscribe({
       next: (res: any) => {
         const savedConfig = res.config;
-
-        // Add to our website list
         this.websites.push(savedConfig);
         this.saveToLocal();
 
         this.selectedWebsite = savedConfig;
         this.successMessage = 'Website configuration saved successfully! Your custom tracking script has been generated.';
         this.isSaving = false;
-
-        // Reset form
         this.name = '';
         this.websiteUrl = '';
       },
-      error: (err: any) => {
+      error: () => {
         this.errorMessage = 'Failed to save website configuration. Please try again.';
         this.isSaving = false;
       }

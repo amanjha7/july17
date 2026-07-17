@@ -6,5 +6,5 @@ import { Component, signal } from '@angular/core';
   styleUrls: ['./header.component.scss']
 })
 export class HeaderComponent {
-  protected readonly Header = signal('Live Chat');
+  protected readonly Header = signal('Web Tracker');
 }
