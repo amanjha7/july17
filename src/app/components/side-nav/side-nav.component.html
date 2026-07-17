@@ -40,8 +40,14 @@
     </ul>
   </div>
 
-  <!-- Footer Info -->
-  <div class="nav-footer pt-3 border-top border-dark text-center">
+  <!-- Footer Info & Theme Toggle -->
+  <div class="nav-footer pt-3 border-top border-dark d-flex flex-column gap-3 align-items-center">
+    <!-- Theme Toggle Button -->
+    <button class="btn btn-sm btn-theme-toggle d-flex align-items-center gap-2 justify-content-center w-100" (click)="toggleTheme()">
+      <i class="bi" [ngClass]="isDarkMode ? 'bi-sun-fill text-warning' : 'bi-moon-stars-fill text-primary'"></i>
+      <span>{{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}</span>
+    </button>
+
     <div class="d-flex align-items-center justify-content-center gap-2">
       <span class="pulse-indicator"></span>
       <span class="text-muted fs-7">Service Online</span>
