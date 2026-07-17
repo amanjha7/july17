@@ -1,0 +1,31 @@
+<div class="layout-container d-flex">
+  <!-- Side Navigation: sticky/fixed -->
+  <app-side-nav [isAuthenticated]="isAuthenticated" [(selectedTab)]="selectedTab" class="sticky-sidebar"></app-side-nav>
+
+  <!-- Content area: scrolling vertically -->
+  <div class="content-container flex-grow-1 d-flex flex-column">
+    <!-- Sticky header at top -->
+    <!-- <app-header class="sticky-header"></app-header> -->
+
+    <!-- Main content, scrollable -->
+    <div class="content flex-grow-1 overflow-auto p-3">
+      @switch (selectedTab) {
+        @case ('profile') {
+          <app-profile></app-profile>
+        }
+
+        @case ('channel') {
+          <app-channel></app-channel>
+        }
+
+        @default {
+          <app-webhook></app-webhook>
+        }
+      }
+    </div>
+  </div>
+</div>
+
+@if(initialLoading){
+  <app-loader></app-loader>
+}

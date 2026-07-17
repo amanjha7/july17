@@ -1,0 +1,130 @@
+<div class="channel-wrapper h-100 d-flex flex-column gap-4">
+  <!-- Top Navigation/Header -->
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="title-glow mb-1">Websites & Scripts</h2>
+      <p class="text-muted fs-6">Manage tracking scripts and active connection instances for your websites.</p>
+    </div>
+
+    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="addNewWebsite()">
+      <i class="bi bi-plus-circle-fill"></i> Add Website
+    </button>
+  </div>
+
+  <div class="row flex-grow-1 g-4">
+    <!-- Left Panel: Connection list -->
+    <div class="col-md-4">
+      <div class="glass-panel h-100 p-4">
+        <h5 class="section-title mb-3">Your Connections</h5>
+
+        <div class="site-list d-flex flex-column gap-2 overflow-auto">
+          <div *ngFor="let site of websites"
+               class="site-item p-3 d-flex justify-content-between align-items-center"
+               [ngClass]="{ 'active': selectedWebsite?._id === site?._id }"
+               (click)="selectWebsite(site)">
+            <div>
+              <div class="site-name">{{ site.name }}</div>
+              <div class="site-url text-muted">{{ site.website_url }}</div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
+          </div>
+
+          <div *ngIf="websites.length === 0" class="text-center py-5">
+            <i class="bi bi-globe2 text-muted fs-1 mb-3 d-block"></i>
+            <span class="text-muted">No websites configured yet.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Setup form / Generated Script -->
+    <div class="col-md-8">
+      <div class="glass-panel h-100 p-4 d-flex flex-column">
+
+        <!-- Case 1: Displaying / Generating tracking script for selected website -->
+        <div *ngIf="selectedWebsite" class="d-flex flex-column gap-4 flex-grow-1">
+          <div class="d-flex justify-content-between align-items-center border-bottom border-dark pb-3">
+            <div>
+              <h4 class="mb-1 text-white">{{ selectedWebsite.name }}</h4>
+              <a [href]="selectedWebsite.website_url" target="_blank" class="text-primary text-decoration-none d-flex align-items-center gap-1">
+                {{ selectedWebsite.website_url }} <i class="bi bi-box-arrow-up-right fs-8"></i>
+              </a>
+            </div>
+
+            <div class="badge bg-success-glow d-flex align-items-center gap-1">
+              <span class="dot bg-success"></span> Active
+            </div>
+          </div>
+
+          <div class="alert alert-success d-flex align-items-center gap-2" *ngIf="successMessage">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>{{ successMessage }}</span>
+          </div>
+
+          <!-- The Script block (Guarded by saving/having details) -->
+          <div class="script-section">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="text-white font-monospace fs-7">DYNAMIC SNIPPET</span>
+              <button class="btn btn-sm btn-outline-light d-flex align-items-center gap-2" (click)="copyScript()">
+                <i class="bi" [ngClass]="copied ? 'bi-check-all text-success' : 'bi-clipboard'"></i>
+                {{ copied ? 'Copied' : 'Copy Snippet' }}
+              </button>
+            </div>
+
+            <div class="code-preview p-3 font-monospace">
+              <pre><code>{{ selectedWebsite.generated_script }}</code></pre>
+            </div>
+          </div>
+
+          <!-- Insertion Guide -->
+          <div class="guide-section p-3 border border-dark rounded">
+            <h6 class="text-white d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-info-circle text-primary"></i> Insertion Guide
+            </h6>
+            <ol class="fs-7 text-muted d-flex flex-column gap-2 mb-0 ps-3">
+              <li>Copy the JavaScript snippet generated above.</li>
+              <li>Open your website's main template file (e.g., <code class="text-white">index.html</code>, layout component, or theme header).</li>
+              <li>Paste the snippet inside the <code class="text-white">&lt;head&gt;</code> tags, preferably right before the closing <code class="text-white">&lt;/head&gt;</code> tag.</li>
+              <li>Publish your changes! The tracking engine will automatically begin registering visits, resolving IP geolocations, and capturing clicks instantly.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Case 2: Form to add/configure a new connection -->
+        <div *ngIf="!selectedWebsite" class="d-flex flex-column gap-4 flex-grow-1 justify-content-center max-w-form mx-auto">
+          <div class="text-center">
+            <i class="bi bi-plus-circle-dotted text-primary glow-icon-lg mb-3 d-inline-block"></i>
+            <h3 class="text-white mb-2">Configure Website Tracking</h3>
+            <p class="text-muted fs-6">Enter your website details to generate your unique custom analytics script.</p>
+          </div>
+
+          <div class="alert alert-danger d-flex align-items-center gap-2" *ngIf="errorMessage">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>{{ errorMessage }}</span>
+          </div>
+
+          <div class="form-group d-flex flex-column gap-1">
+            <label class="text-muted fs-7">Website Name</label>
+            <input type="text" class="form-control glass-input" [(ngModel)]="name" placeholder="e.g. Acme Corp Web Portal">
+          </div>
+
+          <div class="form-group d-flex flex-column gap-1">
+            <label class="text-muted fs-7">Website URL</label>
+            <input type="text" class="form-control glass-input" [(ngModel)]="websiteUrl" placeholder="e.g. https://acme.com">
+          </div>
+
+          <div class="mt-2 d-flex flex-column gap-2 text-center">
+            <button class="btn btn-primary py-2.5 d-flex align-items-center justify-content-center gap-2"
+                    [disabled]="isSaving"
+                    (click)="saveWebsiteConfig()">
+              <span *ngIf="isSaving" class="spinner-border spinner-border-sm"></span>
+              {{ isSaving ? 'Saving & Generating...' : 'Save & Generate Script' }}
+            </button>
+            <span class="text-muted fs-8 font-monospace">※ Tracking script will be generated instantly upon saving.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

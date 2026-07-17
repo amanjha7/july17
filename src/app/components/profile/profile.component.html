@@ -1,0 +1,267 @@
+<div class="leads-wrapper h-100 d-flex flex-column gap-4">
+
+  <!-- Top Navigation & Website Filter -->
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="title-glow mb-1">Identified Leads & Visitors</h2>
+      <p class="text-muted fs-6 font-monospace">Analyze visitor behaviors, identity merges, and custom action timelines.</p>
+    </div>
+
+    <div class="filter-box d-flex align-items-center gap-2">
+      <span class="text-muted fs-7 font-monospace">FILTER WEBSITE:</span>
+      <select class="form-select glass-dropdown text-white" [(ngModel)]="selectedToken" (change)="onWebsiteChange()">
+        <option *ngFor="let s of websites" [value]="s.tracking_token">{{ s.name }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Main Content Row -->
+  <div class="row flex-grow-1 g-4">
+
+    <!-- Left Column: Leads List -->
+    <div class="col-md-5">
+      <div class="glass-panel h-100 p-4 d-flex flex-column">
+        <h5 class="section-title mb-3 d-flex align-items-center justify-content-between">
+          <span>Active Visitors</span>
+          <span class="badge bg-primary-glow font-monospace fs-8">{{ filteredLeads.length }} tracked</span>
+        </h5>
+
+        <div class="leads-scroll d-flex flex-column gap-2 overflow-auto flex-grow-1">
+          <div *ngFor="let lead of filteredLeads"
+               class="lead-card p-3 d-flex flex-column gap-2"
+               [ngClass]="{ 'active': selectedLead?._id === lead?._id }"
+               (click)="selectLead(lead)">
+
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h6 class="lead-name mb-0 d-flex align-items-center gap-2">
+                  {{ lead.name || 'Anonymous Visitor' }}
+                  <span *ngIf="lead.name" class="badge text-bg-success fs-9">IDENTIFIED</span>
+                </h6>
+                <span class="text-muted fs-8 font-monospace">{{ lead.visitor_id }}</span>
+              </div>
+              <span class="text-muted fs-8 font-monospace">{{ lead.last_seen | date:'shortTime' }}</span>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <div class="d-flex align-items-center gap-1.5 text-muted fs-8">
+                <i class="bi bi-geo-alt-fill text-danger"></i>
+                <span>{{ lead.city }}, {{ lead.country }}</span>
+              </div>
+
+              <div class="d-flex align-items-center gap-2 text-muted fs-8 font-monospace">
+                <i class="bi bi-laptop"></i>
+                <span>{{ lead.browser }} • {{ lead.os }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Lead Detailed Timeline / Session Record Playback -->
+    <div class="col-md-7">
+      <div class="glass-panel h-100 p-4 d-flex flex-column">
+        <div *ngIf="selectedLead" class="d-flex flex-column gap-4 flex-grow-1">
+
+          <!-- Detailed Profile Header -->
+          <div class="d-flex justify-content-between align-items-start border-bottom border-dark pb-3">
+            <div>
+              <h3 class="text-white mb-1">{{ selectedLead.name || 'Anonymous Visitor' }}</h3>
+              <div class="d-flex flex-wrap gap-x-3 gap-y-1 text-muted fs-7">
+                <span class="d-flex align-items-center gap-1"><i class="bi bi-envelope-fill"></i> {{ selectedLead.email || 'No email associated yet' }}</span>
+                <span class="d-flex align-items-center gap-1"><i class="bi bi-telephone-fill"></i> {{ selectedLead.phone || 'No phone associated' }}</span>
+              </div>
+            </div>
+
+            <!-- Play Session Recording Button -->
+            <button class="btn btn-primary d-flex align-items-center gap-2" (click)="playSession()">
+              <i class="bi bi-play-btn-fill"></i> Play Session
+            </button>
+          </div>
+
+          <!-- Metadata Grid -->
+          <div class="row g-3">
+            <div class="col-6 col-sm-3">
+              <div class="metric-card p-3 rounded">
+                <span class="text-muted fs-8 font-monospace">IP ADDRESS</span>
+                <div class="text-white fs-6 mt-1 font-monospace">{{ selectedLead.ip }}</div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="metric-card p-3 rounded">
+                <span class="text-muted fs-8 font-monospace">LOCATION</span>
+                <div class="text-white fs-6 mt-1 d-flex align-items-center gap-1.5">
+                  <i class="bi bi-compass text-primary"></i> {{ selectedLead.city || 'Unknown' }}
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="metric-card p-3 rounded">
+                <span class="text-muted fs-8 font-monospace">DEVICE & OS</span>
+                <div class="text-white fs-6 mt-1">{{ selectedLead.device }} ({{ selectedLead.os }})</div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="metric-card p-3 rounded">
+                <span class="text-muted fs-8 font-monospace">BROWSER</span>
+                <div class="text-white fs-6 mt-1">{{ selectedLead.browser }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Timeline Section -->
+          <div class="timeline-section flex-grow-1 overflow-auto pe-1">
+            <h5 class="section-title mb-3 d-flex align-items-center gap-2">
+              <i class="bi bi-clock-history text-primary"></i> Action Timeline
+            </h5>
+
+            <div class="timeline ps-3 border-start border-dark position-relative d-flex flex-column gap-4">
+              <div *ngFor="let ev of leadEvents" class="timeline-item position-relative">
+                <div class="timeline-marker bg-primary rounded-circle"></div>
+
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                  <span class="event-title text-white font-monospace">{{ ev.event_type | uppercase }}</span>
+                  <span class="text-muted fs-8 font-monospace">{{ ev.timestamp | date:'mediumTime' }}</span>
+                </div>
+
+                <div class="event-details p-3 rounded mt-2">
+                  <!-- Custom details depending on event_type -->
+                  <div *ngIf="ev.event_type === 'page_view'" class="fs-7">
+                    <div class="d-flex align-items-center gap-1 mb-1 text-white-50">
+                      <i class="bi bi-file-earmark-code"></i> URL Path:
+                    </div>
+                    <span class="text-primary font-monospace fs-8">{{ ev.properties?.url }}</span>
+                    <div class="text-muted mt-1">Screen: {{ ev.properties?.screen_width }}x{{ ev.properties?.screen_height }}</div>
+                  </div>
+
+                  <div *ngIf="ev.event_type === 'click'" class="fs-7">
+                    <div class="d-flex align-items-center gap-1 mb-1 text-white-50">
+                      <i class="bi bi-cursor-fill"></i> Clicked Element:
+                    </div>
+                    <span class="text-white font-monospace">&lt;{{ ev.properties?.tag }}&gt;</span> with text <span class="text-warning">"{{ ev.properties?.text }}"</span>
+                    <div class="text-muted mt-1">Class/Id: <code class="text-white">{{ ev.properties?.classes || ev.properties?.id || 'none' }}</code></div>
+                  </div>
+
+                  <div *ngIf="ev.event_type === 'form_submit'" class="fs-7">
+                    <div class="d-flex align-items-center gap-1 mb-2 text-success">
+                      <i class="bi bi-check2-circle"></i> Form Submission Received
+                    </div>
+                    <div class="font-monospace text-muted-40 fs-8 border-top border-dark pt-2">
+                      <div *ngFor="let item of ev.properties?.fields | keyvalue" class="d-flex justify-content-between">
+                        <span class="text-muted">{{ item.key }}:</span>
+                        <span class="text-white">{{ item.value }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div *ngIf="ev.event_type === 'identify'" class="fs-7">
+                    <div class="text-success d-flex align-items-center gap-1">
+                      <i class="bi bi-person-check-fill"></i> User Merged / Identified
+                    </div>
+                    <div class="text-muted mt-1">Associated visitor_id with Name: "{{ ev.properties?.name }}", Email: "{{ ev.properties?.email }}"</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!selectedLead" class="text-center py-5 my-auto">
+          <i class="bi bi-person-badge text-muted fs-1 mb-3 d-block"></i>
+          <span class="text-muted">Select a visitor to inspect their timeline history.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================================================== -->
+<!-- INTERACTIVE SESSION REPLAY PLAYER OVERLAY (MOCK RRWEB PLAYER) -->
+<!-- ==================================================== -->
+<div class="player-overlay d-flex align-items-center justify-content-center" *ngIf="isPlayingRecording">
+  <div class="player-modal d-flex flex-column p-4">
+    <div class="d-flex justify-content-between align-items-center border-bottom border-dark pb-3 mb-3">
+      <div class="d-flex align-items-center gap-3">
+        <i class="bi bi-play-circle-fill text-primary fs-3"></i>
+        <div>
+          <h5 class="text-white mb-0">Session Recording Replay</h5>
+          <span class="text-muted fs-8 font-monospace">SESSION ID: {{ selectedLead?.visitor_id || 'test-session-id' }}</span>
+        </div>
+      </div>
+      <button class="btn-close btn-close-white" (click)="closePlayer()"></button>
+    </div>
+
+    <!-- Active Replay Sandbox Screen -->
+    <div class="replay-viewport position-relative border border-dark rounded flex-grow-1 overflow-hidden d-flex flex-column">
+      <!-- Mini Browser Header bar -->
+      <div class="browser-bar px-3 py-2 border-bottom border-dark d-flex align-items-center gap-3">
+        <div class="d-flex gap-1.5">
+          <span class="dot-btn bg-danger"></span>
+          <span class="dot-btn bg-warning"></span>
+          <span class="dot-btn bg-success"></span>
+        </div>
+        <div class="address-bar flex-grow-1 font-monospace text-center py-1 rounded">
+          <i class="bi bi-lock-fill text-success fs-9"></i> {{ mockReplayPage }}
+        </div>
+      </div>
+
+      <!-- Simulated Web Layout Canvas -->
+      <div class="browser-canvas position-relative flex-grow-1 p-4">
+        <!-- Render simple pricing layout or checkout based on step -->
+        <div class="container h-100 d-flex flex-column justify-content-center align-items-center" *ngIf="mockReplayPage.includes('pricing')">
+          <h2 class="text-white mb-4 text-center">Acme Corp Plans</h2>
+          <div class="row g-3 w-100 max-w-600">
+            <div class="col-6">
+              <div class="pricing-card p-3 border border-dark rounded bg-black-20 text-center">
+                <h5>Free Tier</h5>
+                <p class="text-muted">$0 / mo</p>
+                <button class="btn btn-sm btn-outline-light mt-2">Current</button>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="pricing-card p-3 border border-primary rounded bg-primary-10 text-center position-relative">
+                <span class="badge bg-primary position-absolute top-0 start-50 translate-middle">POPULAR</span>
+                <h5>Enterprise</h5>
+                <p class="text-white fw-bold">$99 / mo</p>
+                <button class="btn btn-sm btn-primary mt-2">Selected</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="container h-100 d-flex flex-column justify-content-center align-items-center" *ngIf="mockReplayPage.includes('checkout')">
+          <h2 class="text-white mb-3">Enterprise Checkout</h2>
+          <div class="checkout-form p-3 border border-dark rounded w-100 max-w-400 d-flex flex-column gap-2.5">
+            <input type="text" class="form-control form-control-sm bg-dark text-white" placeholder="Full Name" value="John Doe" disabled>
+            <input type="email" class="form-control form-control-sm bg-dark text-white" placeholder="Email Address" value="john@example.com" disabled>
+            <input type="text" class="form-control form-control-sm bg-dark text-white" placeholder="Card Information" value="•••• •••• •••• 4242" disabled>
+            <button class="btn btn-sm btn-success w-100 mt-2">Complete Purchase</button>
+          </div>
+        </div>
+
+        <div class="container h-100 d-flex flex-column justify-content-center align-items-center text-center" *ngIf="mockReplayPage.includes('thank-you')">
+          <i class="bi bi-patch-check-fill text-success fs-1 mb-3"></i>
+          <h2 class="text-white">Purchase Completed!</h2>
+          <p class="text-muted">Thank you, John Doe. Your enterprise plan is now fully active.</p>
+        </div>
+
+        <!-- Simulated Pointer Cursor (animated based on step timeline coords) -->
+        <div class="replay-cursor position-absolute"
+             [style.left.px]="mockReplayCursorX"
+             [style.top.px]="mockReplayCursorY">
+          <i class="bi bi-cursor-fill cursor-pointer-glow"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Action Log / Status -->
+    <div class="replay-status mt-3 p-3 bg-black-40 rounded border border-dark font-monospace d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <span class="spinner-grow spinner-grow-sm text-primary"></span>
+        <span class="text-white fs-7">{{ mockReplayAction }}</span>
+      </div>
+      <span class="text-muted fs-8 font-monospace">FPS: 30 • INTERACTIVE</span>
+    </div>
+  </div>
+</div>

@@ -20,7 +20,7 @@ app.use(setCorrelationId); // Set correlation ID for every request
 
 // Session management
 app.use(session({
-    secret: 'ZFMV+ZDgi+D&mBI',  // Use a strong secret key
+    secret: process.env.APP_SIGNING_SECRET || 'pronnel_webtracker_session_secret',  // Use env secret or fallback
     resave: false,
     saveUninitialized: false,
     cookie: {
