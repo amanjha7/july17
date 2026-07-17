@@ -7,7 +7,7 @@ stages:
 #    - source gitbuildvariables.env
 
 variables:
-  APP_NAME: zohoform
+  APP_NAME: webtrackerapp
   DEPLOY_SERVER_IP: APPS_SERVER_PROD
   SERVER_USER: azureuser
   ID_RSA: ID_RSA_GENERIC_SERVER
