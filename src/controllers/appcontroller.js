@@ -1,4 +1,4 @@
-const { processSubscription, processWebhook, processUnsubscription, processWebhookSample } = require('../services/appservice');
+const { processSubscription, processWebhook, processUnsubscription, processWebhookSample, processEventWebhook } = require('../services/appservice');
 const {logger} = require('../config/logger');
 
 //Function to subscribe the event of the application by saving the webhook of pronnel in db
@@ -63,9 +63,25 @@ const receiveWebhook = async (req, res) => {
   }
 };
 
+const handleEventWebhook = async (req, res) => {
+  logger.info('Entering handleEventWebhook(). Request Body : ', req.body);
+  try {
+    const event = req.body?.event_type;
+    processEventWebhook(req.body, event);
+    logger.info('Leaving handleEventWebhook()');
+    return res.status(200).json({message:"success"});
+  }
+  catch (err) {
+    logger.error('Error encountered in handleEventWebhook(). Error is : ', err);
+    logger.info('Leaving handleEventWebhook() from catch block');
+    res.status(500).send('Processing webhook failed due to some error.');
+  }
+}
+
 module.exports = {
   handleSubscription,
   handleUnsubscription,
   sendWebhookSample,
-  receiveWebhook
+  receiveWebhook,
+  handleEventWebhook
 }
