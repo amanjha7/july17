@@ -3,8 +3,7 @@ const {
   handleSubscription,
   handleUnsubscription,
   sendWebhookSample,
-  receiveWebhook,
-  handleEventWebhook
+  receiveWebhook
 } = require('../controllers/appcontroller');
 const { authenticationMiddleware } = require('../middlewares/authentication');
 const router = express.Router();
@@ -20,7 +19,5 @@ router.post("/webhook/sample", sendWebhookSample);
 
 // Webhook - for configuration in the app
 router.post("/common/webhook", receiveWebhook);
-
-router.post("/event/webhook", handleEventWebhook);
 
 module.exports = { router };

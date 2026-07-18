@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const { ConnectionFilter } = require('../filters/connectionfilter');
 const { WebhookDetailsFilter } = require('../filters/webhookdetailsfilter');
 const { APP_URLS, REDIRECT_URI, TRIGGER_NAME } = require('../constants/appconstants')
-const { getSavedConnection, deleteConnection, saveConnection } = require('../dbhelper/connectiondao')
+const { getSavedConnection, deleteConnection } = require('../dbhelper/connectiondao')
 const { updateWebhookDetails, getSavedWebhookDetails, deleteWebhookDetails } = require('../dbhelper/webhookdetailsdao');
 const { fetchAccessToken, generateCryptoSignature } = require('../utils/apputils');
 const {logger} = require('../config/logger'); 
@@ -189,57 +189,72 @@ function determineTriggerType(event, payload) {
 }
 
 
+//####  SAMPLE GET and POST calls  ####
+/* const getPullRequestList = async (data) => {
+  let accessToken = await fetchAccessToken(data);
+  let fixed_fields = data?.field_details?.fixed_fields;
+  let owner = fixed_fields.repo_owner?.field_value;
+  let repo = fixed_fields.repo_name?.field_value;
 
-async function processEventWebhook(payload, event) {
-  logger.info('Entering processEventWebhook(). Payload : ', payload, ' and event : ', event);
-  try {
-    logger.info(`Received event: ${event}`);
-    switch (event) {
-      case 'INSTANCE_DELETE':
-        logger.info('Processing INSTANCE_DELETE event');
-        // Handle instance deletion logic here
-        await deleteConnection(new ConnectionFilter( payload.app_instance_id));
-        break;
+  const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+    headers: createGitHubApiHeader(accessToken)
+  });
 
-      case 'INSTANCE_UPDATE':
-        logger.info('Processing INSTANCE_UPDATE event');
-        // Handle instance update logic here
-        break;
-      
-      case 'INSTANCE_CREATE':
-        logger.info('Processing INSTANCE_CREATE event');
+  return response.data.map(obj => ({
+    label: obj.title,
+    value: obj.number
+  }));
+};
 
-        const connectionObj = {
-          pronnel_user_id: payload.pronnel_user_id,
-          app_instance_id: payload.app_instance_id,
-          org_id: payload.org_id,
-          workfolder_id: payload.workfolder_id,
-          create_date: payload.event_time || Date.now(),
-          update_date: payload.event_time || Date.now()
-        };
 
-        logger.info('Saving connection object:', connectionObj);
+const createPullRequestComment = async (data) => {
+  let fixed_fields = data?.field_details?.fixed_fields;
+  let accessToken = await fetchAccessToken(data);
+  let owner = fixed_fields.repo_owner?.field_value;
+  let repo = fixed_fields.repo_name?.field_value;
+  let pullNumber = fixed_fields.pull_number?.field_value;
 
-        const savedConnection = await saveConnection(connectionObj);
+  await axios.post(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/comments`, {
+    body: 'Great stuff!',
+    commit_id: '6dcb09b5b57875f334f61aebed695e2e4193db5e',
+    path: 'file1.txt',
+    start_line: 1,
+    start_side: 'RIGHT',
+    line: 2,
+    side: 'RIGHT'
+  }, {
+    headers: createGitHubApiHeader(accessToken)
+  });
+};
 
-        logger.info('Connection saved successfully:', savedConnection);
-        break;
+const updatePullRequest = async (data) => {
+  let fixed_fields = data?.field_details?.fixed_fields;
+  let accessToken = await fetchAccessToken(data);
+  let owner = fixed_fields.repo_owner?.field_value;
+  let repo = fixed_fields.repo_name?.field_value;
+  let pullNumber = fixed_fields.pull_number?.field_value;
+  let title = fixed_fields.title?.field_value;
+  let body = fixed_fields.body?.field_value;
+  let state = fixed_fields.state?.field_value;
 
-      default:
-        logger.info(`No handler defined for event type: ${event}`);
-    }
-    logger.info('Leaving processEventWebhook()');
-  }
-  catch (err) {
-    logger.error('Error encountered in processEventWebhook(). Error is : ', err);
-  }
-}
+  let details = await getPullRequestDetails(owner, repo, pullNumber, accessToken);
+  let base = details ? details.base.ref : 'master';
+
+  await axios.patch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}`, {
+    title: title,
+    body: body,
+    state: state,
+    base: base
+  }, {
+    headers: createGitHubApiHeader(accessToken)
+  });
+};
+*/
 
 
 module.exports = {
   processSubscription,
   processUnsubscription,
   processWebhookSample,
-  processWebhook,
-  processEventWebhook
+  processWebhook
 }
