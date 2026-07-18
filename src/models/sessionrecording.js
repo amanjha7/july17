@@ -10,6 +10,12 @@ const sessionRecordingSchema = mongoose.Schema({
     updated_at: { type: Number }
 });
 
+// TTL index: automatically delete records older than 5 days
+// MongoDB TTL indexes work on Date fields, so we add a `expire_at` field
+sessionRecordingSchema.add({
+    expire_at: { type: Date, default: Date.now, index: { expires: '5d' } }
+});
+
 sessionRecordingSchema.pre('save', function (next) {
     if (!this._id) {
         this._id = new Types.ObjectId();
@@ -23,6 +29,8 @@ sessionRecordingSchema.pre('validate', function (next) {
         this.created_at = now;
     }
     this.updated_at = now;
+    // Set the TTL expiry field to current time (MongoDB will auto-delete after 5 days)
+    this.expire_at = new Date(now);
     next();
 });
 

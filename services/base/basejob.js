@@ -1,33 +1,25 @@
+/**
+ * BaseJob - Abstract base class for all background jobs
+ */
 class BaseJob {
-    constructor() {
-        this.name = this.constructor.name;
-        this.jobDetails = null;
+    constructor(data = {}) {
+        this.data = data;
+        this.createdAt = Date.now();
     }
 
-    // Should be overridden in derived classes
-    failed(job) {
-        throw new Error("Method 'failed' must be implemented.");
+    /**
+     * Handle method - to be overridden by subclasses
+     * Each job must implement its own handle method
+     */
+    async handle() {
+        throw new Error('handle() method must be implemented by subclass');
     }
 
-    // Should be overridden in derived classes
-    completed(job) {
-        throw new Error("Method 'completed' must be implemented.");
-    }
-
-    async handle(job, currentStep) {
-        // To be implemented in derived classes if needed
-    }
-
-    moveToNextStep() {
-        // Logic to move to the next step
-    }
-
-    setJobDetails(jobDetails) {
-        this.jobDetails = jobDetails;
-    }
-
-    getJobDetails() {
-        return this.jobDetails;
+    /**
+     * Get the job name for queue identification
+     */
+    getJobName() {
+        return this.constructor.name;
     }
 }
 

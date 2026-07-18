@@ -1,122 +1,174 @@
-const { Queue, QueueScheduler, QueueEvents } = require("bullmq");
-const { connection } = require("./queueconfig");
-const { jobHandler } = require("./jobhandler");
-const {logger} = require("../../src/config/logger");
+const { Queue, Worker } = require('bullmq');
+const { logger } = require('../../src/config/logger');
 
+const REDIS_CONNECTION = {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD || undefined
+};
+
+/**
+ * BaseService - Singleton base class for all background job services
+ * Uses BullMQ for job queue processing
+ */
 class BaseService {
-    static serverNumber = Number(process.env.SERVER_NUMBER)
     constructor(serviceName) {
+        if (this.constructor === BaseService) {
+            throw new Error('BaseService is abstract and cannot be instantiated directly');
+        }
         this.serviceName = serviceName;
-        this.queue = new Queue(this.serviceName, { connection });
-        this.queueEvents = new QueueEvents(this.queue.name, { connection });
-
-        this.ownServiceName = serviceName + BaseService.serverNumber;
-        this.ownQueue = new Queue(this.ownServiceName, { connection });
-        this.ownQueueEvents = new QueueEvents(this.ownQueue.name, { connection });
-
-        this.queueServerMap = new Map();
-        this.queueServerMap.set(BaseService.serverNumber, this.ownQueue);
+        this.queue = null;
+        this.worker = null;
+        this.isRunning = false;
     }
 
-    async queueJob(baseJob, delayInSeconds = 0, opts = {}, serverNumberToRun = -1, automationRuleId = '') {
-        opts['removeOnComplete'] = {
-            age: 1 * 24 * 3600,
-        };
-        opts['removeOnFail'] = {
-            age: 7 * 24 * 3600,
-        };
-        opts['delay'] = delayInSeconds * 1000;
-
-        if (await this.checkIfSameCronExists(baseJob, opts, serverNumberToRun, automationRuleId)) {
-            logger.info("Job with same cron already exist. Not queuing this cron job: " + baseJob.name);
-            return;
+    /**
+     * Initialize the BullMQ queue for this service
+     */
+    initializeQueue() {
+        if (!this.queue) {
+            this.queue = new Queue(this.serviceName, {
+                connection: REDIS_CONNECTION,
+                defaultJobOptions: {
+                    attempts: 3,
+                    backoff: {
+                        type: 'exponential',
+                        delay: 2000
+                    },
+                    removeOnComplete: {
+                        age: 3600 * 24, // Keep completed jobs for 1 day
+                        count: 1000
+                    },
+                    removeOnFail: {
+                        age: 3600 * 24 * 7 // Keep failed jobs for 7 days
+                    }
+                }
+            });
+            logger.info(`[${this.serviceName}] Queue initialized`);
         }
-
-        if (serverNumberToRun < 0) {
-            const newJob = await this.queue.add(baseJob.name, baseJob, opts);
-            logger.info("Job Queued:: " + newJob.id + " " + baseJob.name);
-            return newJob;
-        } else {
-            if (!this.queueServerMap.get(serverNumberToRun)) {
-                const serverQueue = new Queue(this.serviceName + serverNumberToRun, { connection });
-                this.queueServerMap.set(serverNumberToRun, serverQueue);
-            }
-            const serverQueue = this.queueServerMap.get(serverNumberToRun);
-            const newJob = await serverQueue.add(baseJob.name, baseJob, opts);
-            logger.info("Job Queued:: " + (newJob?.id) + " " + baseJob.name);
-            return newJob;
-        }
-    }
-
-    getQueue() {
         return this.queue;
     }
 
-    getQueueEvents() {
-        return this.queueEvents;
+    /**
+     * Initialize the BullMQ worker for this service
+     * @param {Function} jobHandler - async function to handle each job
+     */
+    initializeWorker(jobHandler) {
+        if (!this.worker) {
+            this.worker = new Worker(
+                this.serviceName,
+                async (job) => {
+                    logger.info(`[${this.serviceName}] Processing job: ${job.name} (ID: ${job.id})`);
+                    try {
+                        await jobHandler(job);
+                        logger.info(`[${this.serviceName}] Job ${job.id} completed successfully`);
+                    } catch (err) {
+                        logger.error(`[${this.serviceName}] Job ${job.id} failed: ${err.message}`);
+                        throw err;
+                    }
+                },
+                {
+                    connection: REDIS_CONNECTION,
+                    concurrency: 5
+                }
+            );
+
+            this.worker.on('completed', (job) => {
+                logger.info(`[${this.serviceName}] Worker completed job: ${job.id}`);
+            });
+
+            this.worker.on('failed', (job, err) => {
+                logger.error(`[${this.serviceName}] Worker failed job: ${job?.id} - ${err.message}`);
+            });
+
+            logger.info(`[${this.serviceName}] Worker initialized`);
+        }
+        return this.worker;
     }
 
-    async getJobDetails(jobId) {
-        return await this.queue.getJob(jobId);
-    }
-
-    async checkIfSameCronExists(baseJob, opts = {}, serverNumberToRun = -1, automationRuleId = '') {
-        if (!opts.repeat?.cron) {
-            return false;
+    /**
+     * Queue a job for processing
+     * @param {BaseJob} job - The job instance
+     * @param {number} delay - Delay in milliseconds before processing
+     * @param {object} options - Additional BullMQ job options
+     * @returns {Promise<Job>}
+     */
+    async queueJob(job, delay = 0, options = {}) {
+        if (!this.queue) {
+            this.initializeQueue();
         }
 
-        let repeatableJobs;
-        if (serverNumberToRun < 0) {
-            repeatableJobs = await this.getQueue().getRepeatableJobs();
-        } else {
-            if (!this.queueServerMap.get(serverNumberToRun)) {
-                const serverQueue = new Queue(this.serviceName + serverNumberToRun, { connection });
-                this.queueServerMap.set(serverNumberToRun, serverQueue);
+        const jobOptions = {
+            ...options,
+            delay
+        };
+
+        const queuedJob = await this.queue.add(job.getJobName(), job.data, jobOptions);
+        logger.info(`[${this.serviceName}] Queued job: ${job.getJobName()} (ID: ${queuedJob.id})`);
+        return queuedJob;
+    }
+
+    /**
+     * Start the service (queue + worker)
+     * @param {Function} jobHandler
+     */
+    start(jobHandler) {
+        if (this.isRunning) return;
+
+        this.initializeQueue();
+        this.initializeWorker(jobHandler);
+        this.isRunning = true;
+        logger.info(`[${this.serviceName}] Service started`);
+    }
+
+    /**
+     * Gracefully stop the service
+     */
+    async stop() {
+        if (this.worker) {
+            await this.worker.close();
+            this.worker = null;
+        }
+        if (this.queue) {
+            await this.queue.close();
+            this.queue = null;
+        }
+        this.isRunning = false;
+        logger.info(`[${this.serviceName}] Service stopped`);
+    }
+
+    /**
+     * Static method to start multiple services by name
+     * Services are auto-discovered and instantiated
+     * @param {string[]} serviceNames - Array of service names to start
+     */
+    static async startServices(serviceNames) {
+        const services = {
+            'PronnelOauthService': () => {
+                const { PronnelOauthService } = require('../oauthservice/pronneloauthservice');
+                return PronnelOauthService.getInstance();
+            },
+            'WebtrackerJobsService': () => {
+                const { WebtrackerJobsService } = require('../webtrackerjobsservice/webtrackerjobsservice');
+                return WebtrackerJobsService.getInstance();
             }
-            const serverQueue = this.queueServerMap.get(serverNumberToRun);
-            repeatableJobs = await serverQueue.getRepeatableJobs();
-        }
+        };
 
-        for (let i = 0; i < repeatableJobs?.length; i++) {
-            const repeatableJob = repeatableJobs[i];
-            if (repeatableJob.name === baseJob.name && repeatableJob.cron === opts.repeat?.cron) {
-                return true;
+        for (const name of serviceNames) {
+            const factory = services[name];
+            if (factory) {
+                try {
+                    const service = factory();
+                    service.start();
+                    logger.info(`[BaseService] Started service: ${name}`);
+                } catch (err) {
+                    logger.error(`[BaseService] Failed to start service ${name}: ${err.message}`);
+                }
+            } else {
+                logger.warn(`[BaseService] Unknown service: ${name}`);
             }
         }
-
-        return false;
-    }
-
-    static async startServices(serviceNameArray) {
-        const { getFilesFromDirectoryRecursively, loadAllClassesDynamically } = require("../../src/utils/apputils");
-        const allTypeScriptFiles = getFilesFromDirectoryRecursively('./services');
-        const filteredTypeScriptFiles = this.filterFiles(allTypeScriptFiles);
-        const allTypeScriptClasses = loadAllClassesDynamically(filteredTypeScriptFiles);
-
-        for (const serviceName of serviceNameArray) {
-            await BaseService.setupScheduler(serviceName, allTypeScriptClasses);
-            await BaseService.setupScheduler(serviceName + BaseService.serverNumber, allTypeScriptClasses);
-        }
-    }
-
-    static async setupScheduler(serviceName, allTypeScriptClasses) {
-        logger.info("setupScheduler :: Redis connection for services " + connection);
-        const queueScheduler = new QueueScheduler(serviceName, { connection });
-        await queueScheduler.waitUntilReady();
-        await jobHandler(serviceName, allTypeScriptClasses);
-    }
-
-    static filterFiles(allTypeScriptFiles) {
-        const filteredTypeScriptFiles = [];
-        allTypeScriptFiles.forEach((filePath) => {
-            if (filePath.includes("jobs")) {
-                filteredTypeScriptFiles.push(filePath);
-            }
-        });
-        return filteredTypeScriptFiles;
     }
 }
-
-BaseService.serverNumber = Number(process.env.SERVER_NUMBER);
 
 module.exports = { BaseService };

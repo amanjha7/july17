@@ -12,7 +12,7 @@ const { RefreshPronnelOauthTokenJob } = require('../../services/oauthservice/job
 const initiateAuthFlow = async (context) => {
     logger.info(`Entering initiateAuthFlow(). Context received is : ${JSON.stringify(context)}`);
     //We'll take the returnUrl from the pronnel token that is received in the authorize request
-    const url = APP_URLS.GITHUB_AUTHORIZE;
+    const url = APP_URLS.AUTHORIZE;
     const clientId = process.env.APP_CLIENT_ID;
     const redirectUri = REDIRECT_URI;
     //const scope = "repo, user";
@@ -170,7 +170,7 @@ const checkAccessTokenStatus = async (data) => {
         throw err;
       }
       const clientId = process.env.APP_CLIENT_ID;
-      const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+      const clientSecret = process.env.APP_CLIENT_SECRET;
       const response = await axios.post(`https://api.github.com/applications/${clientId}/token`, {
         access_token: accessToken
       }, {

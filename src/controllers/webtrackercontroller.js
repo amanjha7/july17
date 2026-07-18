@@ -515,9 +515,23 @@ const serveScript = async (req, res) => {
     }
 };
 
+// GET /app/webtracker/configs
+const getAllConfigs = async (req, res) => {
+    try {
+        const context = req.session?.context || {};
+        const appInstanceId = req.query.app_instance_id || context.app_instance_id;
+        const configs = await webtrackerService.getAllConfigs(appInstanceId);
+        res.status(200).json(configs);
+    } catch (err) {
+        logger.error(`Error in getAllConfigs(): ${err}`);
+        res.status(500).json({ error: 'Failed to fetch configurations' });
+    }
+};
+
 module.exports = {
     saveConfig,
     getConfig,
+    getAllConfigs,
     getLeads,
     getLeadDetails,
     getLeadEvents,
