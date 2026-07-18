@@ -1,21 +1,105 @@
 @use '@angular/material' as mat;
 @import "prismjs/themes/prism.css";
 
+/* ============================================================
+   CSS Custom Properties for Light/Dark Theme
+   ============================================================ */
+:root,
+[data-theme="dark"] {
+  --bg-primary: #09090b;
+  --bg-secondary: #18181b;
+  --bg-tertiary: rgba(24, 24, 27, 0.7);
+  --bg-elevated: rgba(24, 24, 27, 0.95);
+  --bg-glass: rgba(24, 24, 27, 0.7);
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-active: rgba(59, 130, 246, 0.08);
+  --bg-input: rgba(255, 255, 255, 0.03);
+  --bg-card: rgba(255, 255, 255, 0.02);
+  --bg-metric: rgba(24, 24, 27, 0.6);
+
+  --text-primary: #ffffff;
+  --text-secondary: #e4e4e7;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.04);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --border-active: rgba(59, 130, 246, 0.3);
+
+  --primary: #3b82f6;
+  --primary-dark: #1d4ed8;
+  --primary-glow: rgba(59, 130, 246, 0.4);
+  --primary-bg: rgba(59, 130, 246, 0.12);
+  --success: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.4);
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  --sidebar-bg: rgba(18, 18, 20, 0.95);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+
+  --scrollbar-thumb: rgba(255, 255, 255, 0.08);
+  --scrollbar-track: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: rgba(255, 255, 255, 0.8);
+  --bg-elevated: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-active: rgba(59, 130, 246, 0.08);
+  --bg-input: #ffffff;
+  --bg-card: #ffffff;
+  --bg-metric: #ffffff;
+
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+
+  --border-color: rgba(0, 0, 0, 0.1);
+  --border-light: rgba(0, 0, 0, 0.05);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --border-active: rgba(59, 130, 246, 0.4);
+
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --primary-glow: rgba(59, 130, 246, 0.3);
+  --primary-bg: rgba(59, 130, 246, 0.08);
+  --success: #16a34a;
+  --success-glow: rgba(22, 163, 74, 0.3);
+  --success-bg: rgba(22, 163, 74, 0.08);
+  --warning: #d97706;
+  --danger: #dc2626;
+
+  --sidebar-bg: #ffffff;
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+
+  --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --scrollbar-track: rgba(0, 0, 0, 0.04);
+}
+
 html, body {
   height: 100%;
-  background-color: #09090b !important;
-  color: #e4e4e7 !important;
+  background-color: var(--bg-primary) !important;
+  color: var(--text-secondary) !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   margin: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Importing Bootstrap SCSS file. */
 @import 'bootstrap/scss/bootstrap';
 
-/* Modern slim scrollbar for Dark Theme */
+/* Modern slim scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.08) rgba(0, 0, 0, 0.2);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  transition: scrollbar-color 0.3s ease;
 }
 
 *::-webkit-scrollbar {
@@ -24,11 +108,53 @@ html, body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
+  transition: background 0.3s ease;
 }
 
 *::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--scrollbar-track);
   border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+/* Light mode overrides for Bootstrap components */
+[data-theme="light"] .progress {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="light"] .form-control,
+[data-theme="light"] .form-select {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #0f172a;
+}
+
+[data-theme="light"] .form-control:focus,
+[data-theme="light"] .form-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="light"] .alert-success {
+  background: rgba(22, 163, 74, 0.08);
+  border-color: rgba(22, 163, 74, 0.2);
+  color: #15803d;
+}
+
+[data-theme="light"] .alert-danger {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.2);
+  color: #b91c1c;
+}
+
+[data-theme="light"] .btn-outline-light {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #0f172a;
+}
+
+[data-theme="light"] .btn-outline-light:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.25);
 }

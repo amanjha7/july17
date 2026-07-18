@@ -2,7 +2,8 @@
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background-color: #09090b;
+  background-color: var(--bg-primary);
+  transition: background-color 0.3s ease;
 }
 
 // Sidebar: sticky (visible always)
@@ -29,5 +30,6 @@
   flex-grow: 1;
   padding: 1.5rem;
   scroll-behavior: smooth;
-  background-color: #09090b;
+  background-color: var(--bg-primary);
+  transition: background-color 0.3s ease;
 }

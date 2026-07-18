@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ThemeService } from '../../services/theme.service';
 
 @Component({
   selector: 'app-side-nav',
@@ -14,8 +15,16 @@ export class SideNavComponent {
 
   @Input() isAuthenticated = false;
 
+  theme = this.themeService.theme;
+
+  constructor(private themeService: ThemeService) {}
+
   selectTab(tab: 'profile' | 'code' | 'channel') {
     this.selectedTab = tab;
     this.selectedTabChange.emit(tab);
+  }
+
+  toggleTheme() {
+    this.themeService.toggleTheme();
   }
 }

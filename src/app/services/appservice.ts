@@ -52,7 +52,17 @@ export class Appservice {
     }, { headers });
   }
 
-  // Fetch Webtracker Config Details
+  // Fetch ALL Webtracker Configs for the current app instance
+  getAllWebtrackerConfigs(): Observable<any[]> {
+    const headers = this.getHeaders();
+    let url = `${this.baseUrl}/app/webtracker/configs`;
+    if (this.appInstanceId) {
+      url += `?app_instance_id=${this.appInstanceId}`;
+    }
+    return this.http.get<any[]>(url, { headers });
+  }
+
+  // Fetch Single Webtracker Config Details
   getWebtrackerConfig(id: string): Observable<any> {
     const headers = this.getHeaders();
     return this.http.get<any>(`${this.baseUrl}/app/webtracker/config/${id}`, { headers });
