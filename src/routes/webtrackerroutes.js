@@ -2,6 +2,7 @@ const express = require('express');
 const {
     saveConfig,
     getConfig,
+    getAllConfigs,
     getLeads,
     getLeadDetails,
     getLeadEvents,
@@ -24,6 +25,7 @@ router.get('/script/:token', serveScript);
 
 // Protected/Private Config & Analytics endpoints (Can use middleware if needed, we'll keep it flexible)
 router.post('/config', saveConfig);
+router.get('/configs', getAllConfigs);
 router.get('/config/:id', getConfig);
 router.get('/leads', getLeads);
 router.get('/leads/:id', getLeadDetails);

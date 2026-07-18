@@ -132,10 +132,20 @@ const getStats = async (token) => {
     };
 };
 
+const getAllConfigs = async (appInstanceId) => {
+    logger.info(`Entering getAllConfigs() for appInstanceId: ${appInstanceId}`);
+    const filter = {};
+    if (appInstanceId) {
+        filter.app_instance_id = appInstanceId;
+    }
+    return await WebtrackerConfig.find(filter).sort({ create_date: -1 });
+};
+
 module.exports = {
     createOrUpdateConfig,
     getConfig,
     getConfigByToken,
+    getAllConfigs,
     getLeads,
     getLeadDetails,
     getLeadEvents,
