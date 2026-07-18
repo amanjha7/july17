@@ -76,24 +76,8 @@ code: string =` `;
               this.cdr.detectChanges();
               console.log(' resp ',response?.body, this.inbox_id )
             } else {
-                this.appService.createInbox({}).subscribe({
-                  next: (resp:any)=>{
-                    if(resp.inbox_id){
-                      this.inbox_id = resp.inbox_id
-                        this.webchatBaseUrl = resp?.base_url || this.webchatBaseUrl;
-                        this.iframeUrlOverride = resp?.iframe_override_url || this.iframeUrlOverride;
-                        this.code = this.generateCode(this.inbox_id, this.account_id);
-                        this.cdr.detectChanges();
-                    }
-                  },error:()=>{
-                    this.isAuthenticated = false;
-                    this.initialLoading=false;
-                  },
-                  complete:()=>{
-                    this.isAuthenticated = false;
-                    this.initialLoading=false;
-                  }
-                })
+                this.isAuthenticated = false;
+                this.initialLoading=false;
             }
           },
           error :()=>{
