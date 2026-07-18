@@ -9,7 +9,7 @@ import { jwtDecode } from 'jwt-decode';
 export class Appservice {
   constructor(private http: HttpClient) {}
 
-  public baseUrl: string = 'http://localhost:22611'; // Will be overridden dynamically by JWT Token or host URL
+  public baseUrl: string = 'http://localhost:8888'; // Will be overridden dynamically by JWT Token or host URL
   public token: string = '';
   public appInstanceId: string = '';
   public externalapp_version_id: any = '';
