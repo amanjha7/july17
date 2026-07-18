@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ThemeService } from '../../services/theme.service';
 
@@ -9,15 +9,19 @@ import { ThemeService } from '../../services/theme.service';
   templateUrl: './side-nav.component.html',
   styleUrls: ['./side-nav.component.scss']
 })
-export class SideNavComponent {
+export class SideNavComponent implements OnInit {
   @Input() selectedTab: 'profile' | 'code' | 'channel' = 'channel';
   @Output() selectedTabChange = new EventEmitter<'profile' | 'code' | 'channel'>();
 
   @Input() isAuthenticated = false;
 
-  theme = this.themeService.theme;
-
   constructor(private themeService: ThemeService) {}
+theme:any
+  ngOnInit() {
+
+    this.theme = this.themeService.theme;
+  }
+
 
   selectTab(tab: 'profile' | 'code' | 'channel') {
     this.selectedTab = tab;
