@@ -142,6 +142,66 @@ function parseUserAgent(uaString) {
     return { browser, os, device };
 }
 
+/**
+ * Save event directly to DB, then optionally queue background job for enrichment
+ */
+async function saveEventDirectly(token, visitor_id, session_id, event_type, properties, ip, country, city, region, browser, os, device) {
+    // Save the event
+    const event = new Event({
+        visitor_id,
+        session_id,
+        tracking_token: token,
+        event_type,
+        properties: properties || {},
+        timestamp: Date.now()
+    });
+    await event.save();
+
+    // Update or create lead record
+    let lead = await Lead.findOne({ visitor_id, tracking_token: token });
+    if (lead) {
+        lead.last_seen = Date.now();
+        if (ip) lead.ip = ip;
+        if (country && country !== 'Unknown') lead.country = country;
+        if (city && city !== 'Unknown') lead.city = city;
+        if (region && region !== 'Unknown') lead.region = region;
+        if (browser && browser !== 'Unknown Browser') lead.browser = browser;
+        if (os && os !== 'Unknown OS') lead.os = os;
+        if (device) lead.device = device;
+        await lead.save();
+    } else {
+        lead = new Lead({
+            visitor_id,
+            tracking_token: token,
+            ip: ip || '',
+            country: country || 'Unknown',
+            city: city || 'Unknown',
+            region: region || 'Unknown',
+            browser: browser || 'Unknown Browser',
+            os: os || 'Unknown OS',
+            device: device || 'Desktop',
+            first_seen: Date.now(),
+            last_seen: Date.now()
+        });
+        await lead.save();
+    }
+
+    return lead;
+}
+
+/**
+ * Try to queue a background job if Redis/BullMQ is available
+ */
+async function tryQueueJob(JobClass, data) {
+    try {
+        const { WebtrackerJobsService } = require('../../services/webtrackerjobsservice/webtrackerjobsservice');
+        await WebtrackerJobsService.getInstance().queueJob(new JobClass(data));
+    } catch (jobErr) {
+        // BullMQ/Redis not available - that's fine, data was saved directly
+        logger.warn(`BullMQ not available, data saved directly: ${jobErr.message}`);
+    }
+}
+
 // POST /app/webtracker/track
 const trackEvent = async (req, res) => {
     logger.info(`Entering trackEvent() controller.`);
@@ -149,7 +209,7 @@ const trackEvent = async (req, res) => {
         const { token, visitor_id, session_id, event_type, properties } = req.body;
 
         if (!token || !visitor_id || !session_id || !event_type) {
-            return res.status(400).json({ error: 'Missing required tracking parameters: token, visitor_id, session_id, and event_type are required' });
+            return res.status(400).json({ error: 'Missing required tracking parameters' });
         }
 
         // Verify config exists
@@ -160,47 +220,27 @@ const trackEvent = async (req, res) => {
 
         // Extract client IP and Geolocation
         let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
-        if (ip.includes(',')) {
-            ip = ip.split(',')[0].trim();
-        }
+        if (ip.includes(',')) ip = ip.split(',')[0].trim();
 
-        let country = 'Unknown';
-        let city = 'Unknown';
-        let region = 'Unknown';
-
+        let country = 'Unknown', city = 'Unknown', region = 'Unknown';
         const geo = geoip.lookup(ip);
         if (geo) {
             country = geo.country || 'Unknown';
             city = geo.city || 'Unknown';
             region = geo.region || 'Unknown';
         } else if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') {
-            country = 'US';
-            city = 'San Francisco';
-            region = 'CA';
+            country = 'US'; city = 'San Francisco'; region = 'CA';
         }
 
-        // Parse user agent
         const ua = req.headers['user-agent'] || '';
         const { browser, os, device } = parseUserAgent(ua);
 
-        // Queue background job
-        const { WebtrackerJobsService } = require('../../services/webtrackerjobsservice/webtrackerjobsservice');
-        const { TrackEventJob } = require('../../services/webtrackerjobsservice/jobs/TrackEventJob');
+        // Save directly to DB first
+        await saveEventDirectly(token, visitor_id, session_id, event_type, properties || {}, ip, country, city, region, browser, os, device);
 
-        await WebtrackerJobsService.getInstance().queueJob(new TrackEventJob({
-            token,
-            visitor_id,
-            session_id,
-            event_type,
-            properties: properties || {},
-            ip,
-            country,
-            city,
-            region,
-            browser,
-            os,
-            device
-        }));
+        // Optionally queue background job (non-blocking)
+        const { TrackEventJob } = require('../../services/webtrackerjobsservice/jobs/TrackEventJob');
+        tryQueueJob(TrackEventJob, { token, visitor_id, session_id, event_type, properties, ip, country, city, region, browser, os, device });
 
         res.status(200).json({ success: true, message: 'Event tracked successfully' });
     } catch (err) {
@@ -237,25 +277,55 @@ const identifyVisitor = async (req, res) => {
         }
         const { browser, os, device } = parseUserAgent(req.headers['user-agent']);
 
-        // Queue background job
-        const { WebtrackerJobsService } = require('../../services/webtrackerjobsservice/webtrackerjobsservice');
-        const { IdentifyVisitorJob } = require('../../services/webtrackerjobsservice/jobs/IdentifyVisitorJob');
+        // Save lead identity directly to DB first
+        let lead = await Lead.findOne({ visitor_id, tracking_token: token });
+        if (lead) {
+            if (name) lead.name = name;
+            if (email) lead.email = email;
+            if (phone) lead.phone = phone;
+            if (ip) lead.ip = ip;
+            if (country && country !== 'Unknown') lead.country = country;
+            if (city && city !== 'Unknown') lead.city = city;
+            if (region && region !== 'Unknown') lead.region = region;
+            if (browser && browser !== 'Unknown Browser') lead.browser = browser;
+            if (os && os !== 'Unknown OS') lead.os = os;
+            if (device) lead.device = device;
+            lead.last_seen = Date.now();
+            await lead.save();
+        } else {
+            lead = new Lead({
+                visitor_id,
+                tracking_token: token,
+                name: name || '',
+                email: email || '',
+                phone: phone || '',
+                ip: ip || '',
+                country: country || 'Unknown',
+                city: city || 'Unknown',
+                region: region || 'Unknown',
+                browser: browser || 'Unknown Browser',
+                os: os || 'Unknown OS',
+                device: device || 'Desktop',
+                first_seen: Date.now(),
+                last_seen: Date.now()
+            });
+            await lead.save();
+        }
 
-        await WebtrackerJobsService.getInstance().queueJob(new IdentifyVisitorJob({
-            token,
+        // Also save an identify event
+        const event = new Event({
             visitor_id,
             session_id: req.body.session_id || 'system-identity',
-            name,
-            email,
-            phone,
-            ip,
-            country,
-            city,
-            region,
-            browser,
-            os,
-            device
-        }));
+            tracking_token: token,
+            event_type: 'identify',
+            properties: { name, email, phone },
+            timestamp: Date.now()
+        });
+        await event.save();
+
+        // Optionally queue background job (non-blocking)
+        const { IdentifyVisitorJob } = require('../../services/webtrackerjobsservice/jobs/IdentifyVisitorJob');
+        tryQueueJob(IdentifyVisitorJob, { token, visitor_id, session_id: req.body.session_id || 'system-identity', name, email, phone, ip, country, city, region, browser, os, device });
 
         res.status(200).json({ success: true, message: 'Visitor identified successfully' });
     } catch (err) {
@@ -273,21 +343,32 @@ const saveSessionRecording = async (req, res) => {
             return res.status(400).json({ error: 'Missing or invalid parameters: token, visitor_id, session_id, and events array are required' });
         }
 
-        // Queue background job
-        const { WebtrackerJobsService } = require('../../services/webtrackerjobsservice/webtrackerjobsservice');
+        // Save directly to DB - upsert/append session recording
+        let recording = await SessionRecording.findOne({ session_id });
+        if (recording) {
+            recording.events.push(...events);
+            recording.updated_at = Date.now();
+            await recording.save();
+        } else {
+            recording = new SessionRecording({
+                session_id,
+                visitor_id,
+                tracking_token: token,
+                events: events || [],
+                created_at: Date.now(),
+                updated_at: Date.now()
+            });
+            await recording.save();
+        }
+
+        // Optionally queue background job (non-blocking)
         const { SaveSessionRecordingJob } = require('../../services/webtrackerjobsservice/jobs/SaveSessionRecordingJob');
+        tryQueueJob(SaveSessionRecordingJob, { token, visitor_id, session_id, events });
 
-        await WebtrackerJobsService.getInstance().queueJob(new SaveSessionRecordingJob({
-            token,
-            visitor_id,
-            session_id,
-            events
-        }));
-
-        res.status(200).json({ success: true, message: 'Session recording chunks appended successfully' });
+        res.status(200).json({ success: true, message: 'Session recording saved successfully' });
     } catch (err) {
         logger.error(`Error in saveSessionRecording(): ${err}`);
-        res.status(500).json({ error: 'Failed to save session recording chunks' });
+        res.status(500).json({ error: 'Failed to save session recording' });
     }
 };
 
@@ -464,7 +545,7 @@ const serveScript = async (req, res) => {
     // 4. rrweb Session Recording Integration
     function loadRrwebAndStart() {
         var script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.umd.min.cjs';
+        script.src = 'https://cdn.jsdelivr.net/npm/rrweb@2.0.0-alpha.13/dist/rrweb.min.js';
         script.onload = function() {
             if (!window.rrweb) return;
             var eventBuffer = [];
