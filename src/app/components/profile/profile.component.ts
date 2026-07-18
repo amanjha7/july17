@@ -1,7 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Appservice } from '../../services/appservice';
+import rrwebPlayer from 'rrweb-player';
 
 @Component({
   selector: 'app-profile',
@@ -10,25 +11,30 @@ import { Appservice } from '../../services/appservice';
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss']
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
   leads: any[] = [];
   filteredLeads: any[] = [];
   selectedLead: any = null;
   leadEvents: any[] = [];
   websites: any[] = [];
   selectedToken: string = '';
+  sessionsList: any[] = [];
 
   // Player state
   isPlayingRecording: boolean = false;
+  recordingEvents: any[] = [];
   recordingSessionId: string = '';
-  mockReplayAction: string = '';
-  mockReplayCursorX: number = 50;
-  mockReplayCursorY: number = 50;
-  mockReplayPage: string = '';
-  replayTimer: any = null;
+  isLoadingRecording: boolean = false;
+  playerInstance: any = null;
+
+  // Player controls state (for custom UI)
+  playerReady: boolean = false;
 
   isLoading: boolean = false;
   isLoadingEvents: boolean = false;
+  isLoadingSessions: boolean = false;
+
+  @ViewChild('playerContainer') playerContainer!: ElementRef;
 
   constructor(private appService: Appservice, private cdr: ChangeDetectorRef) {}
 
@@ -37,79 +43,30 @@ export class ProfileComponent implements OnInit {
     this.loadLeads();
   }
 
+  ngAfterViewInit(): void {}
+
+  ngOnDestroy(): void {
+    this.destroyPlayer();
+  }
+
   loadWebsites() {
-    const stored = localStorage.getItem('pronnel_websites_list');
-    if (stored) {
-      this.websites = JSON.parse(stored);
-      if (this.websites.length > 0) {
-        this.selectedToken = this.websites[0].tracking_token;
+    this.appService.getAllWebtrackerConfigs().subscribe({
+      next: (res: any[]) => {
+        this.websites = res || [];
+        if (this.websites.length > 0 && !this.selectedToken) {
+          this.selectedToken = this.websites[0].tracking_token;
+          this.loadLeads();
+        }
       }
-    }
+    });
   }
 
   loadLeads() {
+    if (!this.selectedToken) return;
     this.isLoading = true;
     this.appService.getLeads(this.selectedToken).subscribe({
       next: (res: any) => {
         this.leads = res || [];
-
-        // If empty, let's load or populate a couple of mock high-fidelity leads for demonstration!
-        if (this.leads.length === 0) {
-          this.leads = [
-            {
-              _id: 'lead1',
-              visitor_id: 'visitor_abc123',
-              tracking_token: this.selectedToken,
-              name: 'Sarah Jenkins',
-              email: 'sarah.jenkins@acme.com',
-              phone: '+1 (415) 888-0192',
-              ip: '8.8.8.8',
-              country: 'US',
-              city: 'Mountain View',
-              region: 'CA',
-              browser: 'Chrome',
-              os: 'macOS',
-              device: 'Desktop',
-              first_seen: Date.now() - 3600000 * 2,
-              last_seen: Date.now() - 60000
-            },
-            {
-              _id: 'lead2',
-              visitor_id: 'visitor_xyz789',
-              tracking_token: this.selectedToken,
-              name: 'Marcus Vance',
-              email: 'marcus@vance-media.io',
-              phone: '+44 20 7946 0958',
-              ip: '109.224.19.42',
-              country: 'GB',
-              city: 'London',
-              region: 'ENG',
-              browser: 'Safari',
-              os: 'iOS',
-              device: 'Mobile',
-              first_seen: Date.now() - 3600000 * 5,
-              last_seen: Date.now() - 3600000 * 4
-            },
-            {
-              _id: 'lead3',
-              visitor_id: 'visitor_local',
-              tracking_token: this.selectedToken,
-              name: '', // Anonymous visitor
-              email: '',
-              phone: '',
-              ip: '127.0.0.1',
-              country: 'Local',
-              city: 'Localhost',
-              region: 'Local',
-              browser: 'Firefox',
-              os: 'Linux',
-              device: 'Desktop',
-              first_seen: Date.now() - 600000,
-              last_seen: Date.now()
-            }
-          ];
-        }
-
         this.filteredLeads = [...this.leads];
         if (this.filteredLeads.length > 0) {
           this.selectLead(this.filteredLeads[0]);
@@ -130,63 +87,16 @@ export class ProfileComponent implements OnInit {
   selectLead(lead: any) {
     this.selectedLead = lead;
     this.leadEvents = [];
+    this.sessionsList = [];
     this.isPlayingRecording = false;
-    this.stopReplay();
+    this.destroyPlayer();
+
+    if (!lead) return;
 
     this.isLoadingEvents = true;
     this.appService.getLeadEvents(lead._id).subscribe({
       next: (res: any) => {
         this.leadEvents = res || [];
-
-        // If no events found in DB, let's generate mock timeline events based on lead profile to populate beautifully!
-        if (this.leadEvents.length === 0) {
-          const timestamp = lead.last_seen || Date.now();
-          this.leadEvents = [
-            {
-              event_type: 'page_view',
-              properties: {
-                url: 'https://example.com/checkout',
-                title: 'Secure Checkout | Purchase Plan',
-                screen_width: 1440,
-                screen_height: 900
-              },
-              timestamp: timestamp
-            },
-            {
-              event_type: 'form_submit',
-              properties: {
-                form_id: 'billing-form',
-                action: '/api/charge',
-                fields: {
-                  name: lead.name || 'Anonymous',
-                  email: lead.email || 'None',
-                  phone: lead.phone || 'None',
-                  zip: '94043'
-                }
-              },
-              timestamp: timestamp - 120000
-            },
-            {
-              event_type: 'click',
-              properties: {
-                tag: 'button',
-                text: 'Proceed to Checkout',
-                id: 'checkout-btn'
-              },
-              timestamp: timestamp - 300000
-            },
-            {
-              event_type: 'page_view',
-              properties: {
-                url: 'https://example.com/pricing',
-                title: 'Enterprise Pricing Plans',
-                screen_width: 1440,
-                screen_height: 900
-              },
-              timestamp: timestamp - 600000
-            }
-          ];
-        }
         this.isLoadingEvents = false;
         this.cdr.detectChanges();
       },
@@ -197,56 +107,125 @@ export class ProfileComponent implements OnInit {
   }
 
   playSession() {
+    if (!this.selectedLead?.visitor_id) return;
+
+    this.recordingSessionId = this.selectedLead.visitor_id;
     this.isPlayingRecording = true;
-    this.mockReplayPage = 'https://example.com/pricing';
-    this.mockReplayAction = 'Initializing Session Replay Player...';
-    this.mockReplayCursorX = 120;
-    this.mockReplayCursorY = 80;
+    this.isLoadingRecording = true;
+    this.playerReady = false;
 
-    // Build timeline events for simulation
-    const steps = [
-      { t: 1000, x: 200, y: 150, act: 'Page Loaded: /pricing', page: 'https://example.com/pricing' },
-      { t: 3000, x: 450, y: 320, act: 'Mouse move: hovering on pricing plans', page: 'https://example.com/pricing' },
-      { t: 4500, x: 720, y: 480, act: 'User clicked "Enterprise Plan - Select"', page: 'https://example.com/pricing' },
-      { t: 6000, x: 100, y: 100, act: 'Page Navigated: /checkout', page: 'https://example.com/checkout' },
-      { t: 8000, x: 380, y: 240, act: 'User entered name: "John Doe"', page: 'https://example.com/checkout' },
-      { t: 10500, x: 380, y: 310, act: 'User entered email: "john@example.com"', page: 'https://example.com/checkout' },
-      { t: 13000, x: 620, y: 550, act: 'User clicked submit "Complete Purchase"', page: 'https://example.com/checkout' },
-      { t: 15000, x: 620, y: 550, act: 'Session finished playing.', page: 'https://example.com/thank-you' }
-    ];
+    this.cdr.detectChanges();
 
-    let currentStepIdx = 0;
-    const runSimulationStep = () => {
-      if (!this.isPlayingRecording || currentStepIdx >= steps.length) {
-        this.isPlayingRecording = false;
-        return;
-      }
-
-      const step = steps[currentStepIdx];
-      this.mockReplayCursorX = step.x;
-      this.mockReplayCursorY = step.y;
-      this.mockReplayAction = step.act;
-      this.mockReplayPage = step.page;
-      this.cdr.detectChanges();
-
-      currentStepIdx++;
-
-      const nextDelay = currentStepIdx < steps.length ? (steps[currentStepIdx].t - step.t) : 2000;
-      this.replayTimer = setTimeout(runSimulationStep, nextDelay);
-    };
-
-    runSimulationStep();
+    // Use visitor_id as session identifier to fetch recordings
+    // Also try to find sessions from events
+    setTimeout(() => {
+      this.fetchAndPlayRecording();
+    }, 100);
   }
 
-  stopReplay() {
-    if (this.replayTimer) {
-      clearTimeout(this.replayTimer);
-      this.replayTimer = null;
+  private fetchAndPlayRecording() {
+    const sessionId = this.recordingSessionId;
+
+    this.appService.getSessionRecording(sessionId).subscribe({
+      next: (res: any) => {
+        this.isLoadingRecording = false;
+
+        if (res && res.events && res.events.length > 0) {
+          this.recordingEvents = res.events;
+          this.cdr.detectChanges();
+          // Mount player after view is updated
+          setTimeout(() => this.mountPlayer(), 50);
+        } else {
+          // No recorded session found - show empty state
+          this.recordingEvents = [];
+          this.playerReady = false;
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {
+        this.isLoadingRecording = false;
+        this.recordingEvents = [];
+        this.playerReady = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private mountPlayer() {
+    this.destroyPlayer();
+
+    if (!this.playerContainer?.nativeElement || this.recordingEvents.length === 0) {
+      return;
     }
+
+    try {
+      // Create a wrapper for rrweb-player
+      const wrapper = document.createElement('div');
+      wrapper.id = 'rrweb-player-wrapper';
+      wrapper.style.width = '100%';
+      wrapper.style.height = '100%';
+      wrapper.style.overflow = 'hidden';
+      this.playerContainer.nativeElement.innerHTML = '';
+      this.playerContainer.nativeElement.appendChild(wrapper);
+
+      this.playerInstance = new rrwebPlayer({
+        target: wrapper,
+        props: {
+          events: this.recordingEvents,
+          width: this.playerContainer.nativeElement.clientWidth || 800,
+          height: this.playerContainer.nativeElement.clientHeight || 450,
+          autoPlay: true,
+          showController: true,
+          tags: {},
+          skipInactive: true,
+          speed: 1,
+          mouseTail: true
+        }
+      });
+
+      this.playerReady = true;
+      this.cdr.detectChanges();
+    } catch (err) {
+      console.error('Failed to mount rrweb-player:', err);
+      this.playerReady = false;
+    }
+  }
+
+  private destroyPlayer() {
+    if (this.playerInstance) {
+      try {
+        this.playerInstance.pause();
+        this.playerInstance = null;
+      } catch (e) {
+        this.playerInstance = null;
+      }
+    }
+    if (this.playerContainer?.nativeElement) {
+      this.playerContainer.nativeElement.innerHTML = '';
+    }
+    this.playerReady = false;
+  }
+
+  retryPlayback() {
+    this.fetchAndPlayRecording();
   }
 
   closePlayer() {
     this.isPlayingRecording = false;
-    this.stopReplay();
+    this.destroyPlayer();
+    this.recordingEvents = [];
+    this.recordingSessionId = '';
+    this.playerReady = false;
+  }
+
+  getRecordingDuration(): string {
+    if (!this.recordingEvents || this.recordingEvents.length === 0) return '0s';
+    const first = this.recordingEvents[0]?.timestamp || 0;
+    const last = this.recordingEvents[this.recordingEvents.length - 1]?.timestamp || 0;
+    const totalMs = last - first;
+    if (totalMs <= 0) return `${this.recordingEvents.length} events`;
+    const secs = Math.floor(totalMs / 1000);
+    if (secs < 60) return `${secs}s`;
+    return `${Math.floor(secs / 60)}m ${secs % 60}s`;
   }
 }

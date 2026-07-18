@@ -61,6 +61,8 @@
     "node-cron": "^2.0.3",
     "octokit": "^4.0.2",
     "prismjs": "^1.30.0",
+    "rrweb": "^2.1.0",
+    "rrweb-player": "^2.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "uuid": "^8.3.2",
