@@ -49,6 +49,10 @@ function createMockQuery(result) {
 }
 
 // Setup Mongoose Prototype Mocking for save()
+const Connection = require('../models/connection');
+Connection.findOne = function(query) {
+    return createMockQuery(null);
+};
 mongoose.Model.prototype.save = async function() {
     const modelName = this.constructor.modelName;
     if (!this._id) {
@@ -196,6 +200,21 @@ SessionRecording.findOne = function(query) {
 mongoose.connect = async function() {
     console.log('⚡ Mocked MongoDB connection successful.');
     return true;
+};
+
+// Mock WebtrackerJobsService queueJob to run synchronously during tests
+const { WebtrackerJobsService } = require('../../services/webtrackerjobsservice/webtrackerjobsservice');
+
+WebtrackerJobsService.getInstance().queueJob = async function(baseJob) {
+    console.log(`⚡ Mocked Queue: Immediately processing job ${baseJob.name}`);
+    const mockJobObject = {
+        id: 'test-job-id',
+        name: baseJob.name,
+        data: baseJob,
+        asJSON: () => JSON.stringify(baseJob)
+    };
+    await baseJob.handle(mockJobObject);
+    return mockJobObject;
 };
 
 async function runTests() {
@@ -425,6 +444,7 @@ async function runTests() {
         console.log('\n==================================================');
         console.log('🎉 ALL INTEGRATION TESTS PASSED SUCCESSFULLY! 🎉');
         console.log('==================================================');
+        process.exit(0);
 
     } catch (error) {
         console.error('\n❌ TEST RUN FAILURE:', error);
