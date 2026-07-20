@@ -1,8 +1,10 @@
-import { Component, OnInit, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Appservice } from '../../services/appservice';
-import rrwebPlayer from 'rrweb-player';
+
+// The CDN script exposes the global `rrwebPlayer` constructor
+declare var rrwebPlayer: any;
 
 @Component({
   selector: 'app-profile',
@@ -11,44 +13,41 @@ import rrwebPlayer from 'rrweb-player';
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss']
 })
-export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
+export class ProfileComponent implements OnInit, OnDestroy {
+  // ---- Data properties ----
   leads: any[] = [];
   filteredLeads: any[] = [];
   selectedLead: any = null;
   leadEvents: any[] = [];
   websites: any[] = [];
   selectedToken: string = '';
-  sessionsList: any[] = [];
 
-  // Player state
+  // ---- Player state ----
   isPlayingRecording: boolean = false;
   recordingEvents: any[] = [];
   recordingSessionId: string = '';
   isLoadingRecording: boolean = false;
   playerInstance: any = null;
-
-  // Player controls state (for custom UI)
   playerReady: boolean = false;
 
+  // ---- UI state ----
   isLoading: boolean = false;
   isLoadingEvents: boolean = false;
-  isLoadingSessions: boolean = false;
 
+  // ---- ViewChild for the player container ----
   @ViewChild('playerContainer') playerContainer!: ElementRef;
 
   constructor(private appService: Appservice, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.loadWebsites();
-    this.loadLeads();
   }
-
-  ngAfterViewInit(): void {}
 
   ngOnDestroy(): void {
     this.destroyPlayer();
   }
 
+  // ---- Load websites and leads ----
   loadWebsites() {
     this.appService.getAllWebtrackerConfigs().subscribe({
       next: (res: any[]) => {
@@ -57,7 +56,8 @@ export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
           this.selectedToken = this.websites[0].tracking_token;
           this.loadLeads();
         }
-      }
+      },
+      error: (err) => console.error('Failed to load websites:', err)
     });
   }
 
@@ -84,10 +84,10 @@ export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadLeads();
   }
 
+  // ---- Select a lead and load its events ----
   selectLead(lead: any) {
     this.selectedLead = lead;
     this.leadEvents = [];
-    this.sessionsList = [];
     this.isPlayingRecording = false;
     this.destroyPlayer();
 
@@ -106,30 +106,28 @@ export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // ---- Play session ----
   playSession() {
     if (!this.selectedLead?.visitor_id) return;
 
-    // Use session_id from lead events if available, otherwise fallback to visitor_id
+    // Prefer session_id from events if available
     let sessionId = this.selectedLead.visitor_id;
-    if (this.leadEvents && this.leadEvents.length > 0) {
+    if (this.leadEvents?.length) {
       const eventWithSession = this.leadEvents.find(ev => ev.session_id);
-      if (eventWithSession) {
-        sessionId = eventWithSession.session_id;
-      }
+      if (eventWithSession) sessionId = eventWithSession.session_id;
     }
 
     this.recordingSessionId = sessionId;
     this.isPlayingRecording = true;
     this.isLoadingRecording = true;
     this.playerReady = false;
-
     this.cdr.detectChanges();
 
-    setTimeout(() => {
-      this.fetchAndPlayRecording();
-    }, 100);
+    // Wait for overlay to render
+    setTimeout(() => this.fetchAndPlayRecording(), 150);
   }
 
+  // ---- Fetch recording from API ----
   private fetchAndPlayRecording() {
     const sessionId = this.recordingSessionId;
 
@@ -137,29 +135,37 @@ export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (res: any) => {
         this.isLoadingRecording = false;
 
-        if (res && res.events && res.events.length > 0) {
-          // Map and parse stringified events robustly
-          this.recordingEvents = res.events.map((ev: any) => {
-            if (typeof ev === 'string') {
-              try {
-                return JSON.parse(ev);
-              } catch (e) {
-                console.error('Failed to parse stringified event:', ev, e);
-                return ev;
-              }
-            }
-            return ev;
-          });
-
-          this.cdr.detectChanges();
-          // Mount player after view is updated
-          setTimeout(() => this.mountPlayer(), 50);
-        } else {
-          // No recorded session found - show empty state
+        // Extract events (same logic as HTML)
+        let events = res?.events || res;
+        if (!Array.isArray(events)) {
           this.recordingEvents = [];
           this.playerReady = false;
           this.cdr.detectChanges();
+          return;
         }
+
+        // Parse stringified events & filter valid ones
+        this.recordingEvents = events
+          .map((ev: any) => (typeof ev === 'string' ? JSON.parse(ev) : ev))
+          .filter((ev: any) => ev && typeof ev === 'object' && 'type' in ev && 'timestamp' in ev)
+          .sort((a: any, b: any) => a.timestamp - b.timestamp);
+
+        console.log('✅ Recording events:', this.recordingEvents.length);
+        console.log('First event:', this.recordingEvents[0]);
+
+        if (this.recordingEvents.length === 0) {
+          this.playerReady = false;
+          this.cdr.detectChanges();
+          return;
+        }
+
+        // Force view update
+        this.cdr.detectChanges();
+
+        // Mount after DOM paint
+        requestAnimationFrame(() => {
+          setTimeout(() => this.mountPlayer(), 50);
+        });
       },
       error: () => {
         this.isLoadingRecording = false;
@@ -170,55 +176,65 @@ export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // ---- Mount rrweb-player ----
   private mountPlayer() {
     this.destroyPlayer();
 
-    if (!this.playerContainer?.nativeElement || this.recordingEvents.length === 0) {
+    const container = this.playerContainer?.nativeElement;
+    if (!container) {
+      console.warn('Player container not found – retrying...');
+      setTimeout(() => this.mountPlayer(), 100);
       return;
     }
 
-    try {
-      // Create a wrapper for rrweb-player
-      const wrapper = document.createElement('div');
-      wrapper.id = 'rrweb-player-wrapper';
-      wrapper.style.width = '100%';
-      wrapper.style.height = '100%';
-      wrapper.style.overflow = 'hidden';
-      this.playerContainer.nativeElement.innerHTML = '';
-      this.playerContainer.nativeElement.appendChild(wrapper);
+    // Ensure container has non‑zero size
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      console.warn('Container has zero size – retrying...', rect);
+      setTimeout(() => this.mountPlayer(), 100);
+      return;
+    }
 
-      const PlayerConstructor = (rrwebPlayer as any).default || (rrwebPlayer as any).Player || rrwebPlayer;
-      this.playerInstance = new PlayerConstructor({
-        target: wrapper,
+    if (this.recordingEvents.length === 0) {
+      console.warn('No events to play');
+      return;
+    }
+
+    // Clear previous content
+    container.innerHTML = '';
+    container.style.width = '100%';
+    container.style.height = '100%';
+
+    try {
+      // Use the global rrwebPlayer – exactly like the HTML
+      this.playerInstance = new rrwebPlayer({
+        target: container,
         props: {
           events: this.recordingEvents,
-          width: this.playerContainer.nativeElement.clientWidth || 800,
-          height: this.playerContainer.nativeElement.clientHeight || 450,
           autoPlay: true,
+          mouseTail: true,
           showController: true,
-          tags: {},
-          skipInactive: true,
-          speed: 1,
-          mouseTail: true
-        }
+        },
       });
 
       this.playerReady = true;
       this.cdr.detectChanges();
+      console.log('✅ Player mounted successfully (CDN).');
     } catch (err) {
-      console.error('Failed to mount rrweb-player:', err);
+      console.error('❌ rrweb-player mount error:', err);
       this.playerReady = false;
+      this.cdr.detectChanges();
     }
   }
 
+  // ---- Destroy player ----
   private destroyPlayer() {
     if (this.playerInstance) {
       try {
-        this.playerInstance.pause();
-        this.playerInstance = null;
-      } catch (e) {
-        this.playerInstance = null;
-      }
+        if (typeof this.playerInstance.pause === 'function') this.playerInstance.pause();
+        if (typeof this.playerInstance.destroy === 'function') this.playerInstance.destroy();
+      } catch (e) { /* ignore */ }
+      this.playerInstance = null;
     }
     if (this.playerContainer?.nativeElement) {
       this.playerContainer.nativeElement.innerHTML = '';
@@ -226,20 +242,24 @@ export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
     this.playerReady = false;
   }
 
+  // ---- Retry ----
   retryPlayback() {
     this.fetchAndPlayRecording();
   }
 
+  // ---- Close player ----
   closePlayer() {
     this.isPlayingRecording = false;
     this.destroyPlayer();
     this.recordingEvents = [];
     this.recordingSessionId = '';
     this.playerReady = false;
+    this.cdr.detectChanges();
   }
 
+  // ---- Helper to format duration ----
   getRecordingDuration(): string {
-    if (!this.recordingEvents || this.recordingEvents.length === 0) return '0s';
+    if (!this.recordingEvents?.length) return '0s';
     const first = this.recordingEvents[0]?.timestamp || 0;
     const last = this.recordingEvents[this.recordingEvents.length - 1]?.timestamp || 0;
     const totalMs = last - first;

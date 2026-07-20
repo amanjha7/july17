@@ -267,7 +267,11 @@
 
     <!-- rrweb-player container -->
     <div *ngIf="!isLoadingRecording && recordingEvents.length > 0" class="player-body flex-grow-1 position-relative">
-      <div #playerContainer class="player-container w-100 h-100"></div>
+      <!-- <div #playerContainer class="player-container w-100 h-100"></div> -->
+       <div #playerContainer
+     class="player-container w-100 h-100"
+     style="min-height: 400px; min-width: 400px; position: relative;">
+</div>
 
       <!-- Success overlay that fades out -->
       <div class="player-ready-badge" *ngIf="playerReady">
