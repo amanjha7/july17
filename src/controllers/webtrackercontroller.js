@@ -344,6 +344,17 @@ const saveSessionRecording = async (req, res) => {
             return res.status(400).json({ error: 'Missing required parameters: token, visitor_id, and session_id are required' });
         }
 
+        // Check if payload_id is already completely processed to avoid duplication
+        if (payload_id) {
+            const alreadyProcessed = await SessionRecording.findOne({
+                session_id,
+                processed_payloads: payload_id
+            });
+            if (alreadyProcessed) {
+                return res.status(200).json({ success: true, message: 'Session recording payload already processed' });
+            }
+        }
+
         let eventsToSave = [];
 
         if (is_chunk) {
@@ -351,18 +362,22 @@ const saveSessionRecording = async (req, res) => {
                 return res.status(400).json({ error: 'Missing or invalid chunk details' });
             }
 
-            // Save chunk first
-            const chunk = new SessionRecordingChunk({
-                session_id,
-                visitor_id,
-                tracking_token: token,
-                payload_id,
-                sequence_number,
-                total_chunks,
-                chunk_data: chunk_data || '',
-                events: Array.isArray(events) ? events : []
-            });
-            await chunk.save();
+            // Save chunk first (upserting to prevent duplicates on retries)
+            await SessionRecordingChunk.updateOne(
+                { payload_id, sequence_number },
+                {
+                    $set: {
+                        session_id,
+                        visitor_id,
+                        tracking_token: token,
+                        total_chunks,
+                        chunk_data: chunk_data || '',
+                        events: Array.isArray(events) ? events : [],
+                        created_at: Date.now()
+                    }
+                },
+                { upsert: true }
+            );
 
             // Find all chunks of this payload
             const chunks = await SessionRecordingChunk.find({ payload_id });
@@ -402,31 +417,39 @@ const saveSessionRecording = async (req, res) => {
             eventsToSave = events;
         }
 
-        // Save directly to DB - upsert/append session recording
-        let recording = await SessionRecording.findOne({ session_id });
-        if (recording) {
-            recording.events.push(...eventsToSave);
-            // Always sort events by timestamp to ensure chronological order regardless of arrival sequence
-            recording.events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-            recording.updated_at = Date.now();
-            await recording.save();
-        } else {
-            // Sort events by timestamp
+        if (eventsToSave && eventsToSave.length > 0) {
+            // Sort events by timestamp before saving to keep order
             eventsToSave.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-            recording = new SessionRecording({
-                session_id,
-                visitor_id,
-                tracking_token: token,
-                events: eventsToSave || [],
-                created_at: Date.now(),
-                updated_at: Date.now()
-            });
-            await recording.save();
-        }
 
-        // Optionally queue background job (non-blocking)
-        const { SaveSessionRecordingJob } = require('../../services/webtrackerjobsservice/jobs/SaveSessionRecordingJob');
-        tryQueueJob(SaveSessionRecordingJob, { token, visitor_id, session_id, events: eventsToSave });
+            // Use atomic, highly efficient findOneAndUpdate operation to prevent memory blockages on heavy webapplications
+            const updateObj = {
+                $push: {
+                    events: { $each: eventsToSave }
+                },
+                $setOnInsert: {
+                    visitor_id,
+                    tracking_token: token,
+                    created_at: Date.now()
+                },
+                $set: {
+                    updated_at: Date.now()
+                }
+            };
+
+            if (payload_id) {
+                updateObj.$addToSet = { processed_payloads: payload_id };
+            }
+
+            await SessionRecording.findOneAndUpdate(
+                { session_id },
+                updateObj,
+                { upsert: true, new: true }
+            );
+
+            // Optionally queue background job (non-blocking)
+            const { SaveSessionRecordingJob } = require('../../services/webtrackerjobsservice/jobs/SaveSessionRecordingJob');
+            tryQueueJob(SaveSessionRecordingJob, { token, visitor_id, session_id, events: eventsToSave, payload_id });
+        }
 
         res.status(200).json({ success: true, message: 'Session recording saved successfully' });
     } catch (err) {
@@ -640,8 +663,14 @@ const serveScript = async (req, res) => {
                 var totalChunks = Math.ceil(serialized.length / CHAR_CHUNK_SIZE);
                 var payloadId = uuidv4();
 
-                for (var i = 0; i < totalChunks; i++) {
-                    var start = i * CHAR_CHUNK_SIZE;
+                // Sequential Chunk Transmission: Send chunks sequentially (Chunk 0 first, wait for response, then Chunk 1, etc.)
+                // This prevents browser request queueing, server resource contention, and out-of-order race conditions on heavy pages.
+                var currentChunkIdx = 0;
+
+                function sendNext() {
+                    if (currentChunkIdx >= totalChunks) return;
+
+                    var start = currentChunkIdx * CHAR_CHUNK_SIZE;
                     var end = Math.min(start + CHAR_CHUNK_SIZE, serialized.length);
                     var chunkStr = serialized.substring(start, end);
 
@@ -651,45 +680,70 @@ const serveScript = async (req, res) => {
                         session_id: sessionId,
                         is_chunk: true,
                         payload_id: payloadId,
-                        sequence_number: i,
+                        sequence_number: currentChunkIdx,
                         total_chunks: totalChunks,
                         chunk_data: chunkStr
                     };
 
-                    sendChunk(payload);
+                    sendChunk(payload, function(success) {
+                        if (success) {
+                            currentChunkIdx++;
+                            sendNext();
+                        } else {
+                            // Retry current chunk after a delay
+                            setTimeout(sendNext, 2000);
+                        }
+                    });
                 }
+
+                sendNext();
             }
 
-            function sendChunk(payload) {
+            function sendChunk(payload, callback) {
                 var url = apiHost + '/app/webtracker/session-recording';
                 var data = JSON.stringify(payload);
 
-                // Try modern fetch with keepalive to ensure large payloads or closing pages transmit reliably
                 if (window.fetch) {
                     window.fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: data,
                         keepalive: true
+                    }).then(function(res) {
+                        if (res.ok) {
+                            if (callback) callback(true);
+                        } else {
+                            if (callback) callback(false);
+                        }
                     }).catch(function(e) {
-                        // Fallback to sendBeacon if fetch fails
-                        fallbackSendBeacon(url, data);
+                        fallbackSendBeacon(url, data, callback);
                     });
                 } else {
-                    fallbackSendBeacon(url, data);
+                    fallbackSendBeacon(url, data, callback);
                 }
             }
 
-            function fallbackSendBeacon(url, data) {
+            function fallbackSendBeacon(url, data, callback) {
                 if (navigator.sendBeacon) {
-                    navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
+                    var success = navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
+                    if (callback) callback(success);
                 } else {
                     var xhr = new XMLHttpRequest();
                     xhr.open('POST', url, true);
                     xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                if (callback) callback(true);
+                            } else {
+                                if (callback) callback(false);
+                            }
+                        }
+                    };
                     xhr.send(data);
                 }
             }
+
 
             // Flush events periodically or on page unload
             setInterval(flushEvents, 8000);

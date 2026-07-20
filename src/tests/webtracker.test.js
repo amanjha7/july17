@@ -88,7 +88,12 @@ mongoose.Model.prototype.save = async function() {
             mockDb.recordings.push(doc);
         }
     } else if (modelName === 'session_recording_chunk') {
-        mockDb.chunks.push(doc);
+        const idx = mockDb.chunks.findIndex(c => c.payload_id === doc.payload_id && c.sequence_number === doc.sequence_number);
+        if (idx > -1) {
+            mockDb.chunks[idx] = doc;
+        } else {
+            mockDb.chunks.push(doc);
+        }
     }
     return doc;
 };
@@ -195,9 +200,48 @@ SessionRecording.findOne = function(query) {
     const result = mockDb.recordings.find(r => {
         if (query.session_id && r.session_id !== query.session_id) return false;
         if (query.tracking_token && r.tracking_token !== query.tracking_token) return false;
+        if (query.processed_payloads && (!r.processed_payloads || !r.processed_payloads.includes(query.processed_payloads))) return false;
         return true;
     });
     return createMockQuery(result);
+};
+
+SessionRecording.findOneAndUpdate = async function(filter, update, options) {
+    let r = mockDb.recordings.find(rec => rec.session_id === filter.session_id);
+    if (!r) {
+        r = {
+            _id: generateMockId(),
+            session_id: filter.session_id,
+            visitor_id: update.$setOnInsert ? update.$setOnInsert.visitor_id : '',
+            tracking_token: update.$setOnInsert ? update.$setOnInsert.tracking_token : '',
+            events: [],
+            processed_payloads: [],
+            created_at: Date.now(),
+            updated_at: Date.now()
+        };
+        mockDb.recordings.push(r);
+    }
+
+    if (update.$push && update.$push.events) {
+        if (update.$push.events.$each) {
+            r.events.push(...update.$push.events.$each);
+        } else {
+            r.events.push(update.$push.events);
+        }
+    }
+
+    if (update.$addToSet && update.$addToSet.processed_payloads) {
+        const val = update.$addToSet.processed_payloads;
+        if (!r.processed_payloads.includes(val)) {
+            r.processed_payloads.push(val);
+        }
+    }
+
+    if (update.$set) {
+        Object.assign(r, update.$set);
+    }
+
+    return r;
 };
 
 // Mock Static Methods for SessionRecordingChunk Model
@@ -207,6 +251,26 @@ SessionRecordingChunk.find = function(query) {
         result = mockDb.chunks.filter(c => c.payload_id === query.payload_id);
     }
     return createMockQuery(result);
+};
+
+SessionRecordingChunk.updateOne = async function(filter, update, options) {
+    let chunk = mockDb.chunks.find(c => c.payload_id === filter.payload_id && c.sequence_number === filter.sequence_number);
+    if (!chunk) {
+        chunk = {
+            _id: generateMockId(),
+            payload_id: filter.payload_id,
+            sequence_number: filter.sequence_number,
+            events: [],
+            chunk_data: ''
+        };
+        mockDb.chunks.push(chunk);
+    }
+
+    if (update.$set) {
+        Object.assign(chunk, update.$set);
+    }
+
+    return chunk;
 };
 
 SessionRecordingChunk.deleteMany = function(query) {
@@ -518,6 +582,14 @@ async function runTests() {
             throw new Error(`Session recording chunks were not cleaned up after assembly! Leftover count: ${mockDb.chunks.length}`);
         }
         console.log('✅ Verified chunks successfully cleaned up from DB.');
+
+        // Test Exact-Once Duplicate payload protection
+        console.log('\n--- 4c. Testing Exact-Once Duplicate Payload Protection ---');
+        await webtrackerController.saveSessionRecording(chunkReq0, trackRes);
+        if (resStatus !== 200 || resJson.message !== 'Session recording payload already processed') {
+            throw new Error(`Expected payload to be rejected as duplicate, response: ${JSON.stringify(resJson)}`);
+        }
+        console.log('✅ Verified payload_id duplicate protection prevents duplicated session recording events.');
 
         // Now test chronological timestamp sorting. Let's send a late event with an early timestamp and verify sorting.
         const lateReq = {
