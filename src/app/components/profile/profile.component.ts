@@ -109,15 +109,22 @@ export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
   playSession() {
     if (!this.selectedLead?.visitor_id) return;
 
-    this.recordingSessionId = this.selectedLead.visitor_id;
+    // Use session_id from lead events if available, otherwise fallback to visitor_id
+    let sessionId = this.selectedLead.visitor_id;
+    if (this.leadEvents && this.leadEvents.length > 0) {
+      const eventWithSession = this.leadEvents.find(ev => ev.session_id);
+      if (eventWithSession) {
+        sessionId = eventWithSession.session_id;
+      }
+    }
+
+    this.recordingSessionId = sessionId;
     this.isPlayingRecording = true;
     this.isLoadingRecording = true;
     this.playerReady = false;
 
     this.cdr.detectChanges();
 
-    // Use visitor_id as session identifier to fetch recordings
-    // Also try to find sessions from events
     setTimeout(() => {
       this.fetchAndPlayRecording();
     }, 100);
@@ -131,7 +138,19 @@ export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
         this.isLoadingRecording = false;
 
         if (res && res.events && res.events.length > 0) {
-          this.recordingEvents = res.events;
+          // Map and parse stringified events robustly
+          this.recordingEvents = res.events.map((ev: any) => {
+            if (typeof ev === 'string') {
+              try {
+                return JSON.parse(ev);
+              } catch (e) {
+                console.error('Failed to parse stringified event:', ev, e);
+                return ev;
+              }
+            }
+            return ev;
+          });
+
           this.cdr.detectChanges();
           // Mount player after view is updated
           setTimeout(() => this.mountPlayer(), 50);
