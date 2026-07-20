@@ -6,6 +6,7 @@ const sessionRecordingSchema = mongoose.Schema({
     visitor_id: { type: String, required: true },
     tracking_token: { type: String, required: true },
     events: { type: [mongoose.Schema.Types.Mixed], default: [] },
+    processed_payloads: { type: [String], default: [] }, // unique tracking of fully processed payload_ids
     created_at: { type: Number },
     updated_at: { type: Number }
 });

@@ -86,7 +86,11 @@ const getLeadEvents = async (visitor_id) => {
 const getSessionRecording = async (session_id) => {
     logger.info(`Entering getSessionRecording() for session: ${session_id}`);
     const rec = await SessionRecording.findOne({ session_id });
-    return rec ? rec.events : [];
+    if (rec && rec.events) {
+        rec.events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        return rec.events;
+    }
+    return [];
 };
 
 const getStats = async (token) => {
