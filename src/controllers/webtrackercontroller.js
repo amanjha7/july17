@@ -412,10 +412,10 @@ const serveScript = async (req, res) => {
     }
 
     // Generate or fetch Session ID (expires after browser close / inactive session)
-    var sessionId = sessionStorage.getItem('pronnel_session_id');
+    var sessionId = sessionStorage.getItem('pronnel_webtracker_session_id');
     if (!sessionId) {
         sessionId = 'session_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-        sessionStorage.setItem('pronnel_session_id', sessionId);
+        sessionStorage.setItem('pronnel_webtracker_session_id', sessionId);
     }
 
     var token = '${token}';
@@ -545,7 +545,7 @@ const serveScript = async (req, res) => {
     // 4. rrweb Session Recording Integration
     function loadRrwebAndStart() {
         var script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/rrweb@2.0.0-alpha.13/dist/rrweb.min.js';
+        script.src = 'https://cdn.jsdelivr.net/npm/rrweb@1.1.3/dist/rrweb.min.js';
         script.onload = function() {
             if (!window.rrweb) return;
             var eventBuffer = [];

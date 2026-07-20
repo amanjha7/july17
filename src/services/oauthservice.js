@@ -148,8 +148,6 @@ const validateAndRefreshAccessToken = async function (context) {
 const checkAccessTokenStatus = async (data) => {
     logger.info(`Entering checkAccessTokenStatus(). Data : ${JSON.stringify(data)}`);
     try {
-      let accessToken;
-      let refreshToken;
       //Get the connection id from request
       let appInstanceId = data.context.app_instance_id;
       //Fetch the data related to this connectionId in the database
@@ -158,8 +156,7 @@ const checkAccessTokenStatus = async (data) => {
       try {
         let result = await getSavedConnection(filter);
         if (result?.length) {
-          accessToken = result[0].access_token;
-          refreshToken = result[0].refresh_token;
+          return { "status": "success"}
         }
         else {
           return { "status": "failure" }
@@ -169,34 +166,7 @@ const checkAccessTokenStatus = async (data) => {
         logger.error(`Error encountered while fetching saved connection from db. Error is : ${err}`);
         throw err;
       }
-      const clientId = process.env.APP_CLIENT_ID;
-      const clientSecret = process.env.APP_CLIENT_SECRET;
-      const response = await axios.post(`https://api.github.com/applications/${clientId}/token`, {
-        access_token: accessToken
-      }, {
-        auth: {
-          username: clientId,
-          password: clientSecret
-        },
-        headers: {
-          'X-GitHub-Api-Version': '2022-11-28'
-        }
-      });
-  
-      if (response.status === 200) {
-        logger.info(`Token status api returned HTTP 200, i.e. token is working. Access Token was : ${accessToken}`);
-        return { "status": "success" }
-      } else {
-        logger.error(`Access token is invalid or there was an issue. Access Token : ${accessToken}`);
-        try {
-          logger.info(`Attempting to refresh access token using refresh token.`);
-          await getAccessToken(refreshToken, data.context);
-          return { "status": "success" }
-        } catch (refreshErr) {
-          logger.error(`Refresh token has also failed. Returning failure status. Error: ${refreshErr}`);
-          return { "status": "failure" }
-        }
-      }
+
     } catch (error) {
       logger.error(`Error checking access token status: ${error}`);
       if (error.response && error.response.status === 404) {
