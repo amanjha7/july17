@@ -187,7 +187,8 @@ export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
       this.playerContainer.nativeElement.innerHTML = '';
       this.playerContainer.nativeElement.appendChild(wrapper);
 
-      this.playerInstance = new rrwebPlayer({
+      const PlayerConstructor = (rrwebPlayer as any).default || (rrwebPlayer as any).Player || rrwebPlayer;
+      this.playerInstance = new PlayerConstructor({
         target: wrapper,
         props: {
           events: this.recordingEvents,
