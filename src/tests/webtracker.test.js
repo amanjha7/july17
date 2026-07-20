@@ -425,11 +425,17 @@ async function runTests() {
         const chunkPayloadId = 'payload-abc-123';
         const timestampBase = Date.now();
 
-        // Let's have 3 chunks that we will send in wrong order (Chunk 2, Chunk 1, Chunk 0)
+        // Let's have 3 text-based chunks that we will send in wrong order (Chunk 2, Chunk 1, Chunk 0)
         // Ensure they have timestamps that need to be sorted chronologically regardless of how they are assembled
         const chunk0_events = [{ type: 3, timestamp: timestampBase + 10, data: { text: 'chunk0' } }];
         const chunk1_events = [{ type: 3, timestamp: timestampBase + 20, data: { text: 'chunk1' } }];
         const chunk2_events = [{ type: 3, timestamp: timestampBase + 30, data: { text: 'chunk2' } }];
+
+        const fullSerializedStr = JSON.stringify([...chunk0_events, ...chunk1_events, ...chunk2_events]);
+        const partSize = Math.ceil(fullSerializedStr.length / 3);
+        const chunk0_str = fullSerializedStr.substring(0, partSize);
+        const chunk1_str = fullSerializedStr.substring(partSize, partSize * 2);
+        const chunk2_str = fullSerializedStr.substring(partSize * 2);
 
         // Send Chunk 2 first
         const chunkReq2 = {
@@ -441,7 +447,7 @@ async function runTests() {
                 payload_id: chunkPayloadId,
                 sequence_number: 2,
                 total_chunks: 3,
-                events: chunk2_events
+                chunk_data: chunk2_str
             }
         };
         await webtrackerController.saveSessionRecording(chunkReq2, trackRes);
@@ -467,7 +473,7 @@ async function runTests() {
                 payload_id: chunkPayloadId,
                 sequence_number: 1,
                 total_chunks: 3,
-                events: chunk1_events
+                chunk_data: chunk1_str
             }
         };
         await webtrackerController.saveSessionRecording(chunkReq1, trackRes);
@@ -486,7 +492,7 @@ async function runTests() {
                 payload_id: chunkPayloadId,
                 sequence_number: 0,
                 total_chunks: 3,
-                events: chunk0_events
+                chunk_data: chunk0_str
             }
         };
         await webtrackerController.saveSessionRecording(chunkReq0, trackRes);
