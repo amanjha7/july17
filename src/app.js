@@ -40,8 +40,7 @@ app.use(session({
   }));
   
   // Middleware to parse JSON bodies
-  app.use(bodyParser.json());
-  
+app.use(express.json({ limit: '100mb' }));
 
 // Use the webhook router
 app.use('/app', appRouter);
