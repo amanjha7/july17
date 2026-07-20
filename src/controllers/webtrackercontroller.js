@@ -3,6 +3,7 @@ const webtrackerService = require('../services/webtrackerservice');
 const Lead = require('../models/lead');
 const Event = require('../models/event');
 const SessionRecording = require('../models/sessionrecording');
+const SessionRecordingChunk = require('../models/sessionrecordingchunk');
 const { logger } = require('../config/logger');
 
 // POST /app/webtracker/config
@@ -337,24 +338,68 @@ const identifyVisitor = async (req, res) => {
 // POST /app/webtracker/session-recording
 const saveSessionRecording = async (req, res) => {
     try {
-        const { token, visitor_id, session_id, events } = req.body;
+        const { token, visitor_id, session_id, events, is_chunk, payload_id, sequence_number, total_chunks } = req.body;
 
-        if (!token || !visitor_id || !session_id || !events || !Array.isArray(events)) {
-            return res.status(400).json({ error: 'Missing or invalid parameters: token, visitor_id, session_id, and events array are required' });
+        if (!token || !visitor_id || !session_id) {
+            return res.status(400).json({ error: 'Missing required parameters: token, visitor_id, and session_id are required' });
+        }
+
+        let eventsToSave = [];
+
+        if (is_chunk) {
+            if (!payload_id || sequence_number === undefined || !total_chunks || !Array.isArray(events)) {
+                return res.status(400).json({ error: 'Missing or invalid chunk details' });
+            }
+
+            // Save chunk first
+            const chunk = new SessionRecordingChunk({
+                session_id,
+                visitor_id,
+                tracking_token: token,
+                payload_id,
+                sequence_number,
+                total_chunks,
+                events
+            });
+            await chunk.save();
+
+            // Find all chunks of this payload
+            const chunks = await SessionRecordingChunk.find({ payload_id });
+            if (chunks.length === total_chunks) {
+                // All chunks have arrived! Assemble them in order of sequence_number
+                chunks.sort((a, b) => a.sequence_number - b.sequence_number);
+                for (const c of chunks) {
+                    eventsToSave.push(...c.events);
+                }
+                // Clean up chunks
+                await SessionRecordingChunk.deleteMany({ payload_id });
+            } else {
+                // Chunks still pending
+                return res.status(200).json({ success: true, message: `Chunk ${sequence_number + 1}/${total_chunks} saved successfully` });
+            }
+        } else {
+            if (!events || !Array.isArray(events)) {
+                return res.status(400).json({ error: 'events array is required for non-chunked payload' });
+            }
+            eventsToSave = events;
         }
 
         // Save directly to DB - upsert/append session recording
         let recording = await SessionRecording.findOne({ session_id });
         if (recording) {
-            recording.events.push(...events);
+            recording.events.push(...eventsToSave);
+            // Always sort events by timestamp to ensure chronological order regardless of arrival sequence
+            recording.events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             recording.updated_at = Date.now();
             await recording.save();
         } else {
+            // Sort events by timestamp
+            eventsToSave.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             recording = new SessionRecording({
                 session_id,
                 visitor_id,
                 tracking_token: token,
-                events: events || [],
+                events: eventsToSave || [],
                 created_at: Date.now(),
                 updated_at: Date.now()
             });
@@ -363,7 +408,7 @@ const saveSessionRecording = async (req, res) => {
 
         // Optionally queue background job (non-blocking)
         const { SaveSessionRecordingJob } = require('../../services/webtrackerjobsservice/jobs/SaveSessionRecordingJob');
-        tryQueueJob(SaveSessionRecordingJob, { token, visitor_id, session_id, events });
+        tryQueueJob(SaveSessionRecordingJob, { token, visitor_id, session_id, events: eventsToSave });
 
         res.status(200).json({ success: true, message: 'Session recording saved successfully' });
     } catch (err) {
@@ -559,18 +604,69 @@ const serveScript = async (req, res) => {
                 }
             });
 
+            function uuidv4() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+
             function flushEvents() {
                 if (eventBuffer.length === 0) return;
                 var batch = eventBuffer.slice();
                 eventBuffer = [];
 
-                var payload = {
-                    token: token,
-                    visitor_id: visitorId,
-                    session_id: sessionId,
-                    events: batch
-                };
-                sendBeacon('/app/webtracker/session-recording', payload);
+                // Smart Packet Switching: Slice rrweb events into chunks to avoid large payloads failing
+                var CHUNK_SIZE = 15; // split into chunks of at most 15 events
+                var totalChunks = Math.ceil(batch.length / CHUNK_SIZE);
+                var payloadId = uuidv4();
+
+                for (var i = 0; i < totalChunks; i++) {
+                    var chunkEvents = batch.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+                    var payload = {
+                        token: token,
+                        visitor_id: visitorId,
+                        session_id: sessionId,
+                        is_chunk: true,
+                        payload_id: payloadId,
+                        sequence_number: i,
+                        total_chunks: totalChunks,
+                        events: chunkEvents
+                    };
+
+                    sendChunk(payload);
+                }
+            }
+
+            function sendChunk(payload) {
+                var url = apiHost + '/app/webtracker/session-recording';
+                var data = JSON.stringify(payload);
+
+                // Try modern fetch with keepalive to ensure large payloads or closing pages transmit reliably
+                if (window.fetch) {
+                    window.fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: data,
+                        keepalive: true
+                    }).catch(function(e) {
+                        // Fallback to sendBeacon if fetch fails
+                        fallbackSendBeacon(url, data);
+                    });
+                } else {
+                    fallbackSendBeacon(url, data);
+                }
+            }
+
+            function fallbackSendBeacon(url, data) {
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
+                } else {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', url, true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.send(data);
+                }
             }
 
             // Flush events periodically or on page unload
