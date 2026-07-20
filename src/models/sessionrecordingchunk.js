@@ -9,6 +9,7 @@ const sessionRecordingChunkSchema = mongoose.Schema({
     sequence_number: { type: Number, required: true },
     total_chunks: { type: Number, required: true },
     events: { type: [mongoose.Schema.Types.Mixed], default: [] },
+    chunk_data: { type: String }, // support chunked string data
     created_at: { type: Number },
     expire_at: { type: Date, default: Date.now, index: { expires: '5d' } }
 });

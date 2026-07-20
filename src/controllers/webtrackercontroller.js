@@ -338,7 +338,7 @@ const identifyVisitor = async (req, res) => {
 // POST /app/webtracker/session-recording
 const saveSessionRecording = async (req, res) => {
     try {
-        const { token, visitor_id, session_id, events, is_chunk, payload_id, sequence_number, total_chunks } = req.body;
+        const { token, visitor_id, session_id, events, is_chunk, payload_id, sequence_number, total_chunks, chunk_data } = req.body;
 
         if (!token || !visitor_id || !session_id) {
             return res.status(400).json({ error: 'Missing required parameters: token, visitor_id, and session_id are required' });
@@ -347,7 +347,7 @@ const saveSessionRecording = async (req, res) => {
         let eventsToSave = [];
 
         if (is_chunk) {
-            if (!payload_id || sequence_number === undefined || !total_chunks || !Array.isArray(events)) {
+            if (!payload_id || sequence_number === undefined || !total_chunks) {
                 return res.status(400).json({ error: 'Missing or invalid chunk details' });
             }
 
@@ -359,7 +359,8 @@ const saveSessionRecording = async (req, res) => {
                 payload_id,
                 sequence_number,
                 total_chunks,
-                events
+                chunk_data: chunk_data || '',
+                events: Array.isArray(events) ? events : []
             });
             await chunk.save();
 
@@ -368,9 +369,26 @@ const saveSessionRecording = async (req, res) => {
             if (chunks.length === total_chunks) {
                 // All chunks have arrived! Assemble them in order of sequence_number
                 chunks.sort((a, b) => a.sequence_number - b.sequence_number);
-                for (const c of chunks) {
-                    eventsToSave.push(...c.events);
+
+                if (chunks[0].chunk_data !== undefined) {
+                    // String-based packet chunks (Modern Approach)
+                    let fullSerializedPayload = '';
+                    for (const c of chunks) {
+                        fullSerializedPayload += (c.chunk_data || '');
+                    }
+                    try {
+                        eventsToSave = JSON.parse(fullSerializedPayload);
+                    } catch (parseErr) {
+                        logger.error(`Error parsing assembled chunk string: ${parseErr.message}`);
+                        return res.status(400).json({ error: 'Failed to parse assembled chunk data payload' });
+                    }
+                } else {
+                    // Legacy event-array based chunks
+                    for (const c of chunks) {
+                        eventsToSave.push(...(c.events || []));
+                    }
                 }
+
                 // Clean up chunks
                 await SessionRecordingChunk.deleteMany({ payload_id });
             } else {
@@ -616,13 +634,17 @@ const serveScript = async (req, res) => {
                 var batch = eventBuffer.slice();
                 eventBuffer = [];
 
-                // Smart Packet Switching: Slice rrweb events into chunks to avoid large payloads failing
-                var CHUNK_SIZE = 15; // split into chunks of at most 15 events
-                var totalChunks = Math.ceil(batch.length / CHUNK_SIZE);
+                // Smart Packet Switching: Stringify the payload and split it into character chunks to ensure safely sized network packets
+                var serialized = JSON.stringify(batch);
+                var CHAR_CHUNK_SIZE = 20000; // safe max length per chunk string (~20KB)
+                var totalChunks = Math.ceil(serialized.length / CHAR_CHUNK_SIZE);
                 var payloadId = uuidv4();
 
                 for (var i = 0; i < totalChunks; i++) {
-                    var chunkEvents = batch.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+                    var start = i * CHAR_CHUNK_SIZE;
+                    var end = Math.min(start + CHAR_CHUNK_SIZE, serialized.length);
+                    var chunkStr = serialized.substring(start, end);
+
                     var payload = {
                         token: token,
                         visitor_id: visitorId,
@@ -631,7 +653,7 @@ const serveScript = async (req, res) => {
                         payload_id: payloadId,
                         sequence_number: i,
                         total_chunks: totalChunks,
-                        events: chunkEvents
+                        chunk_data: chunkStr
                     };
 
                     sendChunk(payload);
