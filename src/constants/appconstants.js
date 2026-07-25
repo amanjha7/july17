@@ -6,7 +6,8 @@ const APP_URLS = {
     BASE_URL: BASE_URL,
     SYSTEM_INFO: `${BASE_URL}/info`,
     ACCESS_TOKEN: `${BASE_URL}/login/oauth/access_token`,
-    AUTHORIZE: `${BASE_URL}/login/oauth/authorize`
+    AUTHORIZE: `${BASE_URL}/login/oauth/authorize`,
+	TRACKING_WEBHOOK_URL : "/dashboard/tracking/notification"
 }
 const APP_HOST_URL=process.env.APP_HOST_URL;
 const REDIRECT_URI = `${APP_HOST_URL}/callback`;
