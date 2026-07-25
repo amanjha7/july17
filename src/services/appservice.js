@@ -9,6 +9,8 @@ const { getSavedConnection, deleteConnection, saveConnection } = require('../dbh
 const { updateWebhookDetails, getSavedWebhookDetails, deleteWebhookDetails } = require('../dbhelper/webhookdetailsdao');
 const { fetchAccessToken, generateCryptoSignature } = require('../utils/apputils');
 const {logger} = require('../config/logger'); 
+const { TrackingConfigFilter } = require('../filters/trackingconfig');
+const { updateTrackingConfig } = require('../dbhelper/trackingconfigdao');
 
 const processSubscription = async (data, type) => {
   logger.info(`Entering processSubscription(). Data : ${JSON.stringify(data)} and Type : ${type}`);
@@ -236,10 +238,47 @@ async function processEventWebhook(payload, event) {
 }
 
 
+async function handleTrackingConfigurationService(data, context) {
+  logger.info(`Entering handleTrackingConfigurationService Data: ${JSON.stringify(data)} and context: ${JSON.stringify(context)}`);
+  try {
+    const { operation, channel_details } = data || {};
+    let connectionFilter = new ConnectionFilter();
+    connectionFilter.appInstanceIdArray = [context?.app_instance_id];
+    let connection = await getSavedConnection(connectionFilter);
+    if (!connection || !connection.length) {
+      throw new Error('Connection not found for given app_instance_id');
+    }
+    const appInstanceId = connection[0].app_instance_id;
+    if (operation === 'ADD') {
+      let saveObj = {
+        pronnel_tracking_id: channel_details.pronnel_tracking_id,
+        board_id: channel_details.board_id,
+        app_tracking_id: channel_details.app_tracking_id,
+        app_instance_id: appInstanceId,
+        tracking_settings_id: channel_details.tracking_settings_id,
+        tracking_metadata: {
+          name: channel_details?.tracking_metadata?.name || '',
+          created_by: channel_details?.tracking_metadata?.created_by,
+          updated_by: channel_details?.tracking_metadata?.updated_by
+        }
+      };
+      let trackingConfigFilter = new TrackingConfigFilter();
+      trackingConfigFilter.appInstanceIdArray = appInstanceId
+      await updateTrackingConfig(trackingConfigFilter, saveObj)
+      // await saveTrackingConfig(saveObj);
+    }
+    return { success: true };
+  } catch (err) {
+    logger.error('Error encountered in handleTrackingConfigurationService(). Error is : ', err);
+    throw err;
+  }
+}
+
 module.exports = {
   processSubscription,
   processUnsubscription,
   processWebhookSample,
   processWebhook,
-  processEventWebhook
+  processEventWebhook,
+  handleTrackingConfigurationService
 }

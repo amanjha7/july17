@@ -161,27 +161,52 @@ class WebtrackerJobsService extends BaseService {
      * Handle SaveSessionRecordingJob - Save session recording events/rrweb data
      */
     async _handleSaveSessionRecording(data) {
-        const { token, visitor_id, session_id, events } = data;
+        const { token, visitor_id, session_id, events, payload_id } = data;
 
         try {
-            let recording = await SessionRecording.findOne({ session_id });
+            if (!events || events.length === 0) {
+                return;
+            }
 
-            if (recording) {
-                // Append new events to existing recording
-                recording.events.push(...events);
-                recording.updated_at = Date.now();
-                await recording.save();
-            } else {
-                recording = new SessionRecording({
+            // Ensure exact-once delivery in background job handler too if payload_id is passed
+            if (payload_id) {
+                const alreadyProcessed = await SessionRecording.findOne({
                     session_id,
+                    processed_payloads: payload_id
+                });
+                if (alreadyProcessed) {
+                    logger.info(`[WebtrackerJobsService] Session recording payload ${payload_id} already processed. Skipping background job.`);
+                    return;
+                }
+            }
+
+            // Chronological sort
+            events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+            // Use atomic updates to prevent heavy database writes or Node process memory blockage
+            const updateObj = {
+                $push: {
+                    events: { $each: events }
+                },
+                $setOnInsert: {
                     visitor_id,
                     tracking_token: token,
-                    events: events || [],
-                    created_at: Date.now(),
+                    created_at: Date.now()
+                },
+                $set: {
                     updated_at: Date.now()
-                });
-                await recording.save();
+                }
+            };
+
+            if (payload_id) {
+                updateObj.$addToSet = { processed_payloads: payload_id };
             }
+
+            await SessionRecording.findOneAndUpdate(
+                { session_id },
+                updateObj,
+                { upsert: true, new: true }
+            );
 
             logger.info(`[WebtrackerJobsService] Saved session recording: ${session_id} (${events.length} events)`);
         } catch (err) {

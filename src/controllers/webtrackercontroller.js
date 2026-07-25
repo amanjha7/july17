@@ -3,6 +3,7 @@ const webtrackerService = require('../services/webtrackerservice');
 const Lead = require('../models/lead');
 const Event = require('../models/event');
 const SessionRecording = require('../models/sessionrecording');
+const SessionRecordingChunk = require('../models/sessionrecordingchunk');
 const { logger } = require('../config/logger');
 
 // POST /app/webtracker/config
@@ -337,33 +338,118 @@ const identifyVisitor = async (req, res) => {
 // POST /app/webtracker/session-recording
 const saveSessionRecording = async (req, res) => {
     try {
-        const { token, visitor_id, session_id, events } = req.body;
+        const { token, visitor_id, session_id, events, is_chunk, payload_id, sequence_number, total_chunks, chunk_data } = req.body;
 
-        if (!token || !visitor_id || !session_id || !events || !Array.isArray(events)) {
-            return res.status(400).json({ error: 'Missing or invalid parameters: token, visitor_id, session_id, and events array are required' });
+        if (!token || !visitor_id || !session_id) {
+            return res.status(400).json({ error: 'Missing required parameters: token, visitor_id, and session_id are required' });
         }
 
-        // Save directly to DB - upsert/append session recording
-        let recording = await SessionRecording.findOne({ session_id });
-        if (recording) {
-            recording.events.push(...events);
-            recording.updated_at = Date.now();
-            await recording.save();
-        } else {
-            recording = new SessionRecording({
+        // Check if payload_id is already completely processed to avoid duplication
+        if (payload_id) {
+            const alreadyProcessed = await SessionRecording.findOne({
                 session_id,
-                visitor_id,
-                tracking_token: token,
-                events: events || [],
-                created_at: Date.now(),
-                updated_at: Date.now()
+                processed_payloads: payload_id
             });
-            await recording.save();
+            if (alreadyProcessed) {
+                return res.status(200).json({ success: true, message: 'Session recording payload already processed' });
+            }
         }
 
-        // Optionally queue background job (non-blocking)
-        const { SaveSessionRecordingJob } = require('../../services/webtrackerjobsservice/jobs/SaveSessionRecordingJob');
-        tryQueueJob(SaveSessionRecordingJob, { token, visitor_id, session_id, events });
+        let eventsToSave = [];
+
+        if (is_chunk) {
+            if (!payload_id || sequence_number === undefined || !total_chunks) {
+                return res.status(400).json({ error: 'Missing or invalid chunk details' });
+            }
+
+            // Save chunk first (upserting to prevent duplicates on retries)
+            await SessionRecordingChunk.updateOne(
+                { payload_id, sequence_number },
+                {
+                    $set: {
+                        session_id,
+                        visitor_id,
+                        tracking_token: token,
+                        total_chunks,
+                        chunk_data: chunk_data || '',
+                        events: Array.isArray(events) ? events : [],
+                        created_at: Date.now()
+                    }
+                },
+                { upsert: true }
+            );
+
+            // Find all chunks of this payload
+            const chunks = await SessionRecordingChunk.find({ payload_id });
+            if (chunks.length === total_chunks) {
+                // All chunks have arrived! Assemble them in order of sequence_number
+                chunks.sort((a, b) => a.sequence_number - b.sequence_number);
+
+                if (chunks[0].chunk_data !== undefined) {
+                    // String-based packet chunks (Modern Approach)
+                    let fullSerializedPayload = '';
+                    for (const c of chunks) {
+                        fullSerializedPayload += (c.chunk_data || '');
+                    }
+                    try {
+                        eventsToSave = JSON.parse(fullSerializedPayload);
+                    } catch (parseErr) {
+                        logger.error(`Error parsing assembled chunk string: ${parseErr.message}`);
+                        return res.status(400).json({ error: 'Failed to parse assembled chunk data payload' });
+                    }
+                } else {
+                    // Legacy event-array based chunks
+                    for (const c of chunks) {
+                        eventsToSave.push(...(c.events || []));
+                    }
+                }
+
+                // Clean up chunks
+                await SessionRecordingChunk.deleteMany({ payload_id });
+            } else {
+                // Chunks still pending
+                return res.status(200).json({ success: true, message: `Chunk ${sequence_number + 1}/${total_chunks} saved successfully` });
+            }
+        } else {
+            if (!events || !Array.isArray(events)) {
+                return res.status(400).json({ error: 'events array is required for non-chunked payload' });
+            }
+            eventsToSave = events;
+        }
+
+        if (eventsToSave && eventsToSave.length > 0) {
+            // Sort events by timestamp before saving to keep order
+            eventsToSave.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+            // Use atomic, highly efficient findOneAndUpdate operation to prevent memory blockages on heavy webapplications
+            const updateObj = {
+                $push: {
+                    events: { $each: eventsToSave }
+                },
+                $setOnInsert: {
+                    visitor_id,
+                    tracking_token: token,
+                    created_at: Date.now()
+                },
+                $set: {
+                    updated_at: Date.now()
+                }
+            };
+
+            if (payload_id) {
+                updateObj.$addToSet = { processed_payloads: payload_id };
+            }
+
+            await SessionRecording.findOneAndUpdate(
+                { session_id },
+                updateObj,
+                { upsert: true, new: true }
+            );
+
+            // Optionally queue background job (non-blocking)
+            const { SaveSessionRecordingJob } = require('../../services/webtrackerjobsservice/jobs/SaveSessionRecordingJob');
+            tryQueueJob(SaveSessionRecordingJob, { token, visitor_id, session_id, events: eventsToSave, payload_id });
+        }
 
         res.status(200).json({ success: true, message: 'Session recording saved successfully' });
     } catch (err) {
@@ -559,19 +645,105 @@ const serveScript = async (req, res) => {
                 }
             });
 
+            function uuidv4() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+
             function flushEvents() {
                 if (eventBuffer.length === 0) return;
                 var batch = eventBuffer.slice();
                 eventBuffer = [];
 
-                var payload = {
-                    token: token,
-                    visitor_id: visitorId,
-                    session_id: sessionId,
-                    events: batch
-                };
-                sendBeacon('/app/webtracker/session-recording', payload);
+                // Smart Packet Switching: Stringify the payload and split it into character chunks to ensure safely sized network packets
+                var serialized = JSON.stringify(batch);
+                var CHAR_CHUNK_SIZE = 20000; // safe max length per chunk string (~20KB)
+                var totalChunks = Math.ceil(serialized.length / CHAR_CHUNK_SIZE);
+                var payloadId = uuidv4();
+
+                // Sequential Chunk Transmission: Send chunks sequentially (Chunk 0 first, wait for response, then Chunk 1, etc.)
+                // This prevents browser request queueing, server resource contention, and out-of-order race conditions on heavy pages.
+                var currentChunkIdx = 0;
+
+                function sendNext() {
+                    if (currentChunkIdx >= totalChunks) return;
+
+                    var start = currentChunkIdx * CHAR_CHUNK_SIZE;
+                    var end = Math.min(start + CHAR_CHUNK_SIZE, serialized.length);
+                    var chunkStr = serialized.substring(start, end);
+
+                    var payload = {
+                        token: token,
+                        visitor_id: visitorId,
+                        session_id: sessionId,
+                        is_chunk: true,
+                        payload_id: payloadId,
+                        sequence_number: currentChunkIdx,
+                        total_chunks: totalChunks,
+                        chunk_data: chunkStr
+                    };
+
+                    sendChunk(payload, function(success) {
+                        if (success) {
+                            currentChunkIdx++;
+                            sendNext();
+                        } else {
+                            // Retry current chunk after a delay
+                            setTimeout(sendNext, 2000);
+                        }
+                    });
+                }
+
+                sendNext();
             }
+
+            function sendChunk(payload, callback) {
+                var url = apiHost + '/app/webtracker/session-recording';
+                var data = JSON.stringify(payload);
+
+                if (window.fetch) {
+                    window.fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: data,
+                        keepalive: true
+                    }).then(function(res) {
+                        if (res.ok) {
+                            if (callback) callback(true);
+                        } else {
+                            if (callback) callback(false);
+                        }
+                    }).catch(function(e) {
+                        fallbackSendBeacon(url, data, callback);
+                    });
+                } else {
+                    fallbackSendBeacon(url, data, callback);
+                }
+            }
+
+            function fallbackSendBeacon(url, data, callback) {
+                if (navigator.sendBeacon) {
+                    var success = navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
+                    if (callback) callback(success);
+                } else {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', url, true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                if (callback) callback(true);
+                            } else {
+                                if (callback) callback(false);
+                            }
+                        }
+                    };
+                    xhr.send(data);
+                }
+            }
+
 
             // Flush events periodically or on page unload
             setInterval(flushEvents, 8000);

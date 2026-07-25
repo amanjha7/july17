@@ -5,6 +5,7 @@ const WebtrackerConfig = require('../models/webtrackerconfig');
 const Lead = require('../models/lead');
 const Event = require('../models/event');
 const SessionRecording = require('../models/sessionrecording');
+const SessionRecordingChunk = require('../models/sessionrecordingchunk');
 
 // Load environment variables
 require('dotenv').config({ path: 'dev.env' });
@@ -14,7 +15,8 @@ const mockDb = {
     configs: [],
     leads: [],
     events: [],
-    recordings: []
+    recordings: [],
+    chunks: []
 };
 
 // Helper to assign mock ObjectId
@@ -84,6 +86,13 @@ mongoose.Model.prototype.save = async function() {
             mockDb.recordings[idx] = doc;
         } else {
             mockDb.recordings.push(doc);
+        }
+    } else if (modelName === 'session_recording_chunk') {
+        const idx = mockDb.chunks.findIndex(c => c.payload_id === doc.payload_id && c.sequence_number === doc.sequence_number);
+        if (idx > -1) {
+            mockDb.chunks[idx] = doc;
+        } else {
+            mockDb.chunks.push(doc);
         }
     }
     return doc;
@@ -191,9 +200,84 @@ SessionRecording.findOne = function(query) {
     const result = mockDb.recordings.find(r => {
         if (query.session_id && r.session_id !== query.session_id) return false;
         if (query.tracking_token && r.tracking_token !== query.tracking_token) return false;
+        if (query.processed_payloads && (!r.processed_payloads || !r.processed_payloads.includes(query.processed_payloads))) return false;
         return true;
     });
     return createMockQuery(result);
+};
+
+SessionRecording.findOneAndUpdate = async function(filter, update, options) {
+    let r = mockDb.recordings.find(rec => rec.session_id === filter.session_id);
+    if (!r) {
+        r = {
+            _id: generateMockId(),
+            session_id: filter.session_id,
+            visitor_id: update.$setOnInsert ? update.$setOnInsert.visitor_id : '',
+            tracking_token: update.$setOnInsert ? update.$setOnInsert.tracking_token : '',
+            events: [],
+            processed_payloads: [],
+            created_at: Date.now(),
+            updated_at: Date.now()
+        };
+        mockDb.recordings.push(r);
+    }
+
+    if (update.$push && update.$push.events) {
+        if (update.$push.events.$each) {
+            r.events.push(...update.$push.events.$each);
+        } else {
+            r.events.push(update.$push.events);
+        }
+    }
+
+    if (update.$addToSet && update.$addToSet.processed_payloads) {
+        const val = update.$addToSet.processed_payloads;
+        if (!r.processed_payloads.includes(val)) {
+            r.processed_payloads.push(val);
+        }
+    }
+
+    if (update.$set) {
+        Object.assign(r, update.$set);
+    }
+
+    return r;
+};
+
+// Mock Static Methods for SessionRecordingChunk Model
+SessionRecordingChunk.find = function(query) {
+    let result = mockDb.chunks;
+    if (query && query.payload_id) {
+        result = mockDb.chunks.filter(c => c.payload_id === query.payload_id);
+    }
+    return createMockQuery(result);
+};
+
+SessionRecordingChunk.updateOne = async function(filter, update, options) {
+    let chunk = mockDb.chunks.find(c => c.payload_id === filter.payload_id && c.sequence_number === filter.sequence_number);
+    if (!chunk) {
+        chunk = {
+            _id: generateMockId(),
+            payload_id: filter.payload_id,
+            sequence_number: filter.sequence_number,
+            events: [],
+            chunk_data: ''
+        };
+        mockDb.chunks.push(chunk);
+    }
+
+    if (update.$set) {
+        Object.assign(chunk, update.$set);
+    }
+
+    return chunk;
+};
+
+SessionRecordingChunk.deleteMany = function(query) {
+    if (query && query.payload_id) {
+        mockDb.chunks = mockDb.chunks.filter(c => c.payload_id !== query.payload_id);
+    }
+    return createMockQuery({ deletedCount: mockDb.chunks.length });
 };
 
 // Mock mongoose connect so it doesn't try to connect to localhost:27017
@@ -231,6 +315,7 @@ async function runTests() {
     mockDb.leads = [];
     mockDb.events = [];
     mockDb.recordings = [];
+    mockDb.chunks = [];
     console.log('✅ Old test data cleared.');
 
     let configId;
@@ -397,6 +482,140 @@ async function runTests() {
         }
         console.log(`... Array of frames retrieved successfully: ${JSON.stringify(recEvents)}`);
         console.log(`✅ Session recording frames successfully appended and retrieved. Total frames: ${recEvents.length}`);
+
+        // 6b. Test Chunked session recording transmission, out-of-order arrival, and timestamp sorting
+        console.log('\n--- 4b. Testing Chunked Session Recording, out-of-order arrival and sorting ---');
+        const chunkSessionId = 'chunk-session-123';
+        const chunkPayloadId = 'payload-abc-123';
+        const timestampBase = Date.now();
+
+        // Let's have 3 text-based chunks that we will send in wrong order (Chunk 2, Chunk 1, Chunk 0)
+        // Ensure they have timestamps that need to be sorted chronologically regardless of how they are assembled
+        const chunk0_events = [{ type: 3, timestamp: timestampBase + 10, data: { text: 'chunk0' } }];
+        const chunk1_events = [{ type: 3, timestamp: timestampBase + 20, data: { text: 'chunk1' } }];
+        const chunk2_events = [{ type: 3, timestamp: timestampBase + 30, data: { text: 'chunk2' } }];
+
+        const fullSerializedStr = JSON.stringify([...chunk0_events, ...chunk1_events, ...chunk2_events]);
+        const partSize = Math.ceil(fullSerializedStr.length / 3);
+        const chunk0_str = fullSerializedStr.substring(0, partSize);
+        const chunk1_str = fullSerializedStr.substring(partSize, partSize * 2);
+        const chunk2_str = fullSerializedStr.substring(partSize * 2);
+
+        // Send Chunk 2 first
+        const chunkReq2 = {
+            body: {
+                token: testToken,
+                visitor_id: visitorId,
+                session_id: chunkSessionId,
+                is_chunk: true,
+                payload_id: chunkPayloadId,
+                sequence_number: 2,
+                total_chunks: 3,
+                chunk_data: chunk2_str
+            }
+        };
+        await webtrackerController.saveSessionRecording(chunkReq2, trackRes);
+        if (resStatus !== 200 || !resJson.success || !resJson.message.includes('saved successfully')) {
+            throw new Error(`Failed to save chunk 2: Status ${resStatus}, Response: ${JSON.stringify(resJson)}`);
+        }
+        console.log('✅ Chunk 2 (out of order, sequence 2) saved successfully (pending).');
+
+        // Verify no session recording is saved yet
+        let pendingRec = await webtrackerService.getSessionRecording(chunkSessionId);
+        if (pendingRec.length !== 0) {
+            throw new Error('Session recording was saved before all chunks arrived!');
+        }
+        console.log('✅ Verified no session recording exists yet.');
+
+        // Send Chunk 1
+        const chunkReq1 = {
+            body: {
+                token: testToken,
+                visitor_id: visitorId,
+                session_id: chunkSessionId,
+                is_chunk: true,
+                payload_id: chunkPayloadId,
+                sequence_number: 1,
+                total_chunks: 3,
+                chunk_data: chunk1_str
+            }
+        };
+        await webtrackerController.saveSessionRecording(chunkReq1, trackRes);
+        if (resStatus !== 200 || !resJson.success || !resJson.message.includes('saved successfully')) {
+            throw new Error(`Failed to save chunk 1: Status ${resStatus}`);
+        }
+        console.log('✅ Chunk 1 (out of order, sequence 1) saved successfully (pending).');
+
+        // Send Chunk 0 (completes the payload)
+        const chunkReq0 = {
+            body: {
+                token: testToken,
+                visitor_id: visitorId,
+                session_id: chunkSessionId,
+                is_chunk: true,
+                payload_id: chunkPayloadId,
+                sequence_number: 0,
+                total_chunks: 3,
+                chunk_data: chunk0_str
+            }
+        };
+        await webtrackerController.saveSessionRecording(chunkReq0, trackRes);
+        if (resStatus !== 200 || !resJson.success || resJson.message !== 'Session recording saved successfully') {
+            throw new Error(`Failed to save final chunk 0: Status ${resStatus}, Response: ${JSON.stringify(resJson)}`);
+        }
+        console.log('✅ Chunk 0 (sequence 0) saved successfully, completing assembly.');
+
+        // Fetch completed session recording to verify chunks were assembled in the correct sequence order
+        const completedRec = await webtrackerService.getSessionRecording(chunkSessionId);
+        if (completedRec.length !== 3) {
+            throw new Error(`Expected 3 events in chunkSessionId, got: ${completedRec.length}`);
+        }
+        console.log(`✅ Chunks assembled successfully! Total frames: ${completedRec.length}`);
+
+        if (completedRec[0].data.text !== 'chunk0' || completedRec[1].data.text !== 'chunk1' || completedRec[2].data.text !== 'chunk2') {
+            throw new Error(`Chunks assembled in wrong sequence order: ${JSON.stringify(completedRec)}`);
+        }
+        console.log('✅ Chunks sequence order verified: Chunk 0, Chunk 1, Chunk 2.');
+
+        // Verify clean up: No chunks with payloadId should remain in DB
+        if (mockDb.chunks.length !== 0) {
+            throw new Error(`Session recording chunks were not cleaned up after assembly! Leftover count: ${mockDb.chunks.length}`);
+        }
+        console.log('✅ Verified chunks successfully cleaned up from DB.');
+
+        // Test Exact-Once Duplicate payload protection
+        console.log('\n--- 4c. Testing Exact-Once Duplicate Payload Protection ---');
+        await webtrackerController.saveSessionRecording(chunkReq0, trackRes);
+        if (resStatus !== 200 || resJson.message !== 'Session recording payload already processed') {
+            throw new Error(`Expected payload to be rejected as duplicate, response: ${JSON.stringify(resJson)}`);
+        }
+        console.log('✅ Verified payload_id duplicate protection prevents duplicated session recording events.');
+
+        // Now test chronological timestamp sorting. Let's send a late event with an early timestamp and verify sorting.
+        const lateReq = {
+            body: {
+                token: testToken,
+                visitor_id: visitorId,
+                session_id: chunkSessionId,
+                events: [
+                    { type: 3, timestamp: timestampBase + 15, data: { text: 'early-mid' } }
+                ]
+            }
+        };
+        await webtrackerController.saveSessionRecording(lateReq, trackRes);
+        if (resStatus !== 200 || !resJson.success) {
+            throw new Error(`Failed to append late session recording: Status ${resStatus}`);
+        }
+
+        const sortedRec = await webtrackerService.getSessionRecording(chunkSessionId);
+        if (sortedRec.length !== 4) {
+            throw new Error(`Expected 4 total events, got: ${sortedRec.length}`);
+        }
+
+        if (sortedRec[0].data.text !== 'chunk0' || sortedRec[1].data.text !== 'early-mid' || sortedRec[2].data.text !== 'chunk1' || sortedRec[3].data.text !== 'chunk2') {
+            throw new Error(`Events not sorted chronologically: ${JSON.stringify(sortedRec)}`);
+        }
+        console.log('✅ Verified session recording is always sorted chronologically by timestamp.');
 
         // 7. Test Analytics Aggregation
         console.log('\n--- 5. Testing Analytics & Insights Statistics ---');
