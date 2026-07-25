@@ -1,4 +1,5 @@
 const geoip = require('geoip-lite');
+const { v4: uuidv4 } = require('uuid');
 const webtrackerService = require('../services/webtrackerservice');
 const Lead = require('../models/lead');
 const Event = require('../models/event');
@@ -143,10 +144,60 @@ function parseUserAgent(uaString) {
     return { browser, os, device };
 }
 
+function mapWebtrackerEvent(eventType) {
+    switch (eventType) {
+        case 'page_view':
+            return 'PAGE_VIEW';
+        case 'click':
+            return 'PAGE_CLICK';
+        case 'identify':
+            return 'PAGE_SET';
+        default:
+            return 'PAGE_SET';
+    }
+}
+
+function transformWebtrackerPayload(eventType, properties, lead, browser, os, device, ip, country, city, region, session_id, visitor_id) {
+    const mappedEventName = mapWebtrackerEvent(eventType);
+
+    let pageTitle = '';
+    if (properties) {
+        pageTitle = properties.title || properties.text || '';
+    }
+
+    return {
+        event_id: uuidv4(),
+        event_name: mappedEventName || '',
+        event_time: Date.now(),
+        page_title: pageTitle || 'Unknown Page',
+        page_name: properties?.path || '',
+        tracking_settings_id: "",
+        person: {
+            id: visitor_id || '',
+            name: lead?.name || '',
+            url: '',
+            os: os || '',
+            browser: browser || '',
+            device: device || '',
+            browser_language: '',
+            ip: ip || '',
+            location: {
+                city: city || '',
+                state: region || '',
+                country: country || '',
+            },
+        },
+        session_id: session_id,
+        pronnel_session_id: session_id,
+        event_url: properties?.url || '',
+        page_url: properties?.url || '',
+    };
+}
+
 /**
  * Save event directly to DB, then optionally queue background job for enrichment
  */
-async function saveEventDirectly(token, visitor_id, session_id, event_type, properties, ip, country, city, region, browser, os, device) {
+async function saveEventDirectly(token, visitor_id, session_id, event_type, properties, ip, country, city, region, browser, os, device, connection_id) {
     // Save the event
     const event = new Event({
         visitor_id,
@@ -169,6 +220,7 @@ async function saveEventDirectly(token, visitor_id, session_id, event_type, prop
         if (browser && browser !== 'Unknown Browser') lead.browser = browser;
         if (os && os !== 'Unknown OS') lead.os = os;
         if (device) lead.device = device;
+        if (connection_id) lead.connection_id = connection_id;
         await lead.save();
     } else {
         lead = new Lead({
@@ -182,7 +234,8 @@ async function saveEventDirectly(token, visitor_id, session_id, event_type, prop
             os: os || 'Unknown OS',
             device: device || 'Desktop',
             first_seen: Date.now(),
-            last_seen: Date.now()
+            last_seen: Date.now(),
+            connection_id: connection_id || undefined
         });
         await lead.save();
     }
@@ -236,12 +289,40 @@ const trackEvent = async (req, res) => {
         const ua = req.headers['user-agent'] || '';
         const { browser, os, device } = parseUserAgent(ua);
 
+        // Fetch connection info to tie connection_id
+        const { ConnectionFilter } = require('../filters/connectionfilter');
+        const { getSavedConnection } = require('../dbhelper/connectiondao');
+        let connectionFilter = new ConnectionFilter();
+        connectionFilter.appInstanceIdArray = config.app_instance_id;
+        let connection = await getSavedConnection(connectionFilter);
+        let firstConnId = connection && connection.length > 0 ? connection[0]._id : undefined;
+
         // Save directly to DB first
-        await saveEventDirectly(token, visitor_id, session_id, event_type, properties || {}, ip, country, city, region, browser, os, device);
+        const lead = await saveEventDirectly(token, visitor_id, session_id, event_type, properties || {}, ip, country, city, region, browser, os, device, firstConnId);
 
         // Optionally queue background job (non-blocking)
         const { TrackEventJob } = require('../../services/webtrackerjobsservice/jobs/TrackEventJob');
         tryQueueJob(TrackEventJob, { token, visitor_id, session_id, event_type, properties, ip, country, city, region, browser, os, device });
+
+        // Pronnel Webhook dispatch logic
+        const { TrackingConfigFilter } = require('../filters/trackingconfig');
+        const { getTrackingConfig } = require('../dbhelper/trackingconfigdao');
+        const { invokeWebhook } = require('../services/appservice');
+        const { APP_URLS } = require('../constants/appconstants');
+
+        let trackingFilter = new TrackingConfigFilter();
+        trackingFilter.appInstanceIdArray = config.app_instance_id;
+        let alltrackings = await getTrackingConfig(trackingFilter);
+        logger.info(`Tracking Config: ${JSON.stringify(alltrackings)}`);
+
+        // Perform standard transformation
+        const transformed = transformWebtrackerPayload(event_type, properties || {}, lead, browser, os, device, ip, country, city, region, session_id, visitor_id);
+
+        for (let tracking of alltrackings) {
+            transformed['tracking_settings_id'] = tracking?.tracking_settings_id;
+            logger.info(`Invoking webhook for tracking setting: ${tracking?.tracking_settings_id}`);
+            await invokeWebhook(APP_URLS.TRACKING_WEBHOOK_URL, transformed);
+        }
 
         res.status(200).json({ success: true, message: 'Event tracked successfully' });
     } catch (err) {
@@ -278,6 +359,14 @@ const identifyVisitor = async (req, res) => {
         }
         const { browser, os, device } = parseUserAgent(req.headers['user-agent']);
 
+        // Fetch connection info to tie connection_id
+        const { ConnectionFilter } = require('../filters/connectionfilter');
+        const { getSavedConnection } = require('../dbhelper/connectiondao');
+        let connectionFilter = new ConnectionFilter();
+        connectionFilter.appInstanceIdArray = config.app_instance_id;
+        let connection = await getSavedConnection(connectionFilter);
+        let firstConnId = connection && connection.length > 0 ? connection[0]._id : undefined;
+
         // Save lead identity directly to DB first
         let lead = await Lead.findOne({ visitor_id, tracking_token: token });
         if (lead) {
@@ -291,6 +380,7 @@ const identifyVisitor = async (req, res) => {
             if (browser && browser !== 'Unknown Browser') lead.browser = browser;
             if (os && os !== 'Unknown OS') lead.os = os;
             if (device) lead.device = device;
+            if (firstConnId) lead.connection_id = firstConnId;
             lead.last_seen = Date.now();
             await lead.save();
         } else {
@@ -308,7 +398,8 @@ const identifyVisitor = async (req, res) => {
                 os: os || 'Unknown OS',
                 device: device || 'Desktop',
                 first_seen: Date.now(),
-                last_seen: Date.now()
+                last_seen: Date.now(),
+                connection_id: firstConnId || undefined
             });
             await lead.save();
         }
