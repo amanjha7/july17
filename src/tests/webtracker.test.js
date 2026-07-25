@@ -52,8 +52,47 @@ function createMockQuery(result) {
 
 // Setup Mongoose Prototype Mocking for save()
 const Connection = require('../models/connection');
-Connection.findOne = function(query) {
-    return createMockQuery(null);
+const TrackingConfig = require('../models/trackingconfig');
+
+// Setup mock storage for connections and tracking configs
+mockDb.connections = [];
+mockDb.trackingconfigs = [];
+
+Connection.find = function(query) {
+    let result = mockDb.connections;
+    if (query && query.app_instance_id) {
+        let targetId = query.app_instance_id;
+        if (targetId.$in) {
+            const arr = targetId.$in;
+            result = mockDb.connections.filter(c => arr.some(val => val.toString() === c.app_instance_id.toString()));
+        } else {
+            result = mockDb.connections.filter(c => c.app_instance_id.toString() === targetId.toString());
+        }
+    }
+    return createMockQuery(result);
+};
+
+TrackingConfig.find = function(query) {
+    let result = mockDb.trackingconfigs;
+    if (query && query.app_instance_id) {
+        let targetId = query.app_instance_id;
+        if (targetId.$in) {
+            const arr = targetId.$in;
+            result = mockDb.trackingconfigs.filter(tc => arr.some(val => val.toString() === tc.app_instance_id.toString()));
+        } else {
+            result = mockDb.trackingconfigs.filter(tc => tc.app_instance_id.toString() === targetId.toString());
+        }
+    }
+    return createMockQuery(result);
+};
+
+// Mock invokeWebhook from appservice to capture webhook calls
+const appService = require('../services/appservice');
+const invokedWebhooks = [];
+appService.invokeWebhook = async function(catchookUrl, data) {
+    console.log(`⚡ Mocked invokeWebhook: catchhookUrl=${catchookUrl}, data=${JSON.stringify(data)}`);
+    invokedWebhooks.push({ catchookUrl, data });
+    return { success: true };
 };
 mongoose.Model.prototype.save = async function() {
     const modelName = this.constructor.modelName;
@@ -316,6 +355,8 @@ async function runTests() {
     mockDb.events = [];
     mockDb.recordings = [];
     mockDb.chunks = [];
+    mockDb.connections = [];
+    mockDb.trackingconfigs = [];
     console.log('✅ Old test data cleared.');
 
     let configId;
@@ -338,6 +379,30 @@ async function runTests() {
 
         console.log(`✅ Saved Config ID: ${config._id}`);
         console.log(`✅ Generated Tracking Token: ${config.tracking_token}`);
+
+        // Set up mock connections and tracking configurations associated with this app_instance_id
+        const mockConnection = new Connection({
+            _id: generateMockId(),
+            pronnel_user_id: mockConfigData.pronnel_user_id,
+            app_instance_id: mockConfigData.app_instance_id,
+            org_id: mockConfigData.org_id,
+            workfolder_id: generateMockId()
+        });
+        mockDb.connections.push(mockConnection);
+
+        const mockTrackingConfig = new TrackingConfig({
+            pronnel_tracking_id: generateMockId(),
+            board_id: generateMockId(),
+            app_tracking_id: generateMockId(),
+            app_instance_id: mockConfigData.app_instance_id,
+            tracking_settings_id: "test-tracking-setting-id",
+            create_date: Date.now(),
+            update_date: Date.now()
+        });
+        mockDb.trackingconfigs.push(mockTrackingConfig);
+
+        console.log(`✅ Mocked Connection ID: ${mockConnection._id}`);
+        console.log(`✅ Mocked Tracking Settings ID: ${mockTrackingConfig.tracking_settings_id}`);
         if (!config.generated_script.includes(testToken)) {
             throw new Error('Script generation does not include tracking token!');
         }
@@ -398,6 +463,20 @@ async function runTests() {
             throw new Error(`GeoIP lookup failed. Expected US, got: ${lead.country}`);
         }
         console.log('✅ GeoIP lookup verified (resolves 8.8.8.8 to US).');
+
+        // Verify connection_id is set on the Lead
+        if (!lead.connection_id || lead.connection_id.toString() !== mockConnection._id.toString()) {
+            throw new Error(`Expected Lead to have connection_id set to ${mockConnection._id}, got: ${lead.connection_id}`);
+        }
+        console.log('✅ Associated connection_id on Lead verified successfully.');
+
+        // Verify that webhooks were dispatched correctly
+        const matchedDispatches = invokedWebhooks.filter(w => w.data.tracking_settings_id === "test-tracking-setting-id");
+        if (matchedDispatches.length === 0) {
+            throw new Error('Expected standard transform webhook dispatch to have occurred but found none!');
+        }
+        console.log('✅ Pronnel Webhook dispatch verified successfully.');
+        console.log(`   Transformed Event data: ${JSON.stringify(matchedDispatches[0].data)}`);
 
         // Verify Event is stored
         const pageViewEvent = await Event.findOne({ visitor_id: visitorId, event_type: 'page_view' });

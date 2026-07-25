@@ -280,5 +280,6 @@ module.exports = {
   processWebhookSample,
   processWebhook,
   processEventWebhook,
-  handleTrackingConfigurationService
+  handleTrackingConfigurationService,
+  invokeWebhook
 }
