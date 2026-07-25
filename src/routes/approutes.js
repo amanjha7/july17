@@ -4,7 +4,8 @@ const {
   handleUnsubscription,
   sendWebhookSample,
   receiveWebhook,
-  handleEventWebhook
+  handleEventWebhook,
+  handleTrackingConfiguration
 } = require('../controllers/appcontroller');
 const { authenticationMiddleware } = require('../middlewares/authentication');
 const router = express.Router();
@@ -22,5 +23,6 @@ router.post("/webhook/sample", sendWebhookSample);
 router.post("/common/webhook", receiveWebhook);
 
 router.post("/event/webhook", handleEventWebhook);
+router.post('/tracking/configendpoint', authenticationMiddleware, handleTrackingConfiguration)
 
 module.exports = { router };
