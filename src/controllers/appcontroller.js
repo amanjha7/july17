@@ -1,4 +1,4 @@
-const { processSubscription, processWebhook, processUnsubscription, processWebhookSample, processEventWebhook } = require('../services/appservice');
+const { processSubscription, processWebhook, processUnsubscription, processWebhookSample, processEventWebhook, handleTrackingConfigurationService } = require('../services/appservice');
 const {logger} = require('../config/logger');
 
 //Function to subscribe the event of the application by saving the webhook of pronnel in db
@@ -78,10 +78,27 @@ const handleEventWebhook = async (req, res) => {
   }
 }
 
+const handleTrackingConfiguration = async (req, res) => {
+  logger.info("Entering handleTrackingConfiguration");
+    try {
+    let response = await handleTrackingConfigurationService(req.body, req.session.context);
+    logger.info('Session recording data received successfully');
+    if(response) {
+      logger.info(`Session recording result: ${JSON.stringify(response)}`);
+      return res.status(200).json(response);
+    }
+    return res.status(200).json({ message: "Session recording retrieved successfully" });
+  } catch (err) {
+    logger.error('Error encountered in handleTrackingConfiguration(). Error is : ', err);
+    return res.status(500).send('Failed to handleTrackingConfiguration.');
+  }
+}
+
 module.exports = {
   handleSubscription,
   handleUnsubscription,
   sendWebhookSample,
   receiveWebhook,
-  handleEventWebhook
+  handleEventWebhook,
+  handleTrackingConfiguration
 }
