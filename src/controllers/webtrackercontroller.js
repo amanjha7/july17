@@ -94,7 +94,26 @@ const getLeadEvents = async (req, res) => {
 // GET /app/webtracker/sessions/:sessionId/recording
 const getSessionRecording = async (req, res) => {
     try {
-        const events = await webtrackerService.getSessionRecording(req.params.sessionId);
+        let events = await webtrackerService.getSessionRecording(req.params.sessionId);
+        if (typeof events === 'string') {
+            try {
+                events = JSON.parse(events);
+            } catch (e) {
+                // ignore
+            }
+        }
+        if (Array.isArray(events)) {
+            events = events.map(evt => {
+                if (typeof evt === 'string') {
+                    try {
+                        return JSON.parse(evt);
+                    } catch (e) {
+                        return evt;
+                    }
+                }
+                return evt;
+            });
+        }
         res.status(200).json({
             session_id: req.params.sessionId,
             events
