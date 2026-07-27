@@ -56,17 +56,13 @@ export class Webhook implements OnInit, OnDestroy {
         // matching our mock leads data so the UI remains pristine!
         if (!this.stats.totalLeads) {
           this.stats = {
-            totalLeads: 3,
-            identifiedLeads: 2,
-            pageViews: 142,
-            clicks: 39,
-            formSubmits: 5,
+            totalLeads: 0,
+            identifiedLeads: 0,
+            pageViews: 0,
+            clicks: 0,
+            formSubmits: 0,
             locations: {
-              'United States': 74,
-              'United Kingdom': 28,
-              'Canada': 19,
-              'Germany': 11,
-              'India': 10
+  
             }
           };
         }
