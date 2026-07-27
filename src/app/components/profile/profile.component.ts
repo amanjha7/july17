@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef, OnDestroy, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Appservice } from '../../services/appservice';
@@ -14,12 +14,13 @@ declare var rrwebPlayer: any;
   styleUrls: ['./profile.component.scss']
 })
 export class ProfileComponent implements OnInit, OnDestroy {
+  @Input() websites:any=[]
   // ---- Data properties ----
   leads: any[] = [];
   filteredLeads: any[] = [];
   selectedLead: any = null;
   leadEvents: any[] = [];
-  websites: any[] = [];
+  // websites: any[] = [];
   selectedToken: string = '';
 
   // ---- Player state ----

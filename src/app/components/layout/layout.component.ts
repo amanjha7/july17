@@ -34,6 +34,7 @@ export class LayoutComponent {
   webchatBaseUrl: string = 'https://webchat.pronnel.com';
   iframeUrlOverride: string = 'https://webchatiframe.pronnel.com';
 code: string =` `;
+websites:any=[]
 
 
 
@@ -59,6 +60,19 @@ code: string =` `;
         this.appService.token = token;
         this.appService.baseUrl = decoded?.base_url;
         this.baseUrl=decoded?.base_url;
+        this.appService.appInstanceId=decoded?.app_instance_id;
+        console.log("Decode ", this.appService.appInstanceId);
+        this.appService.getConfig().subscribe({
+          next: (req: any) => {
+            console.log('Websites fetched:', req);
+            // Assign new array reference to ensure change detection catches it
+            this.websites = Array.isArray(req) ? [...req] : req;
+            this.cdr.detectChanges(); // Force view updates if running outside normal zone context
+          },
+          error: (err) => {
+            console.error('Error fetching config:', err);
+          }
+        });
         this.appService.validateConnection().subscribe({
           next : (response:any) =>{
             console.log('Connection validated:', response);

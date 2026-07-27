@@ -105,4 +105,10 @@ export class Appservice {
     const headers = this.getHeaders();
     return this.http.post<any>(`${this.baseUrl}/app/create/inboxes`, data, { headers });
   }
+
+  getConfig(){
+    console.log("TOken: ", this.token)
+    const headers = new HttpHeaders({'Authorization':this.token})
+    return this.http.get(`${this.baseUrl}/app/webtracker/config`, { headers });
+  }
 }
