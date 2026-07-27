@@ -38,7 +38,8 @@ const saveConfig = async (req, res) => {
 // GET /app/webtracker/config/:id
 const getConfig = async (req, res) => {
     try {
-        const config = await webtrackerService.getConfig(req.params.id);
+        let context = req.session.context;
+        const config = await webtrackerService.getConfig(context.app_instance_id);
         if (!config) {
             return res.status(404).json({ error: 'Configuration not found' });
         }
