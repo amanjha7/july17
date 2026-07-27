@@ -8,6 +8,7 @@ const {
   handleTrackingConfiguration
 } = require('../controllers/appcontroller');
 const { authenticationMiddleware } = require('../middlewares/authentication');
+const { getSessionRecording } = require('../services/webtrackerservice');
 const router = express.Router();
 
 // POST endpoint for subscription of the pronnel webhook
@@ -24,5 +25,5 @@ router.post("/common/webhook", receiveWebhook);
 
 router.post("/event/webhook", handleEventWebhook);
 router.post('/tracking/configendpoint', authenticationMiddleware, handleTrackingConfiguration)
-
+router.get("/session-recording/:sessionId", getSessionRecording)
 module.exports = { router };
