@@ -13,7 +13,7 @@ const createOrUpdateConfig = async (data) => {
     let config = await WebtrackerConfig.findOne({
         $or: [
             { app_instance_id: app_instance_id },
-            { website_url: website_url }
+            // { website_url: website_url }
         ]
     });
 
@@ -57,9 +57,9 @@ const createOrUpdateConfig = async (data) => {
     return config;
 };
 
-const getConfig = async (id) => {
-    logger.info(`Entering getConfig() with ID: ${id}`);
-    return await WebtrackerConfig.findById(id);
+const getConfig = async (app_instance_id) => {
+    logger.info(`Entering getConfig() with ID: ${app_instance_id}`);
+    return await WebtrackerConfig.find({app_instance_id});
 };
 
 const getConfigByToken = async (token) => {

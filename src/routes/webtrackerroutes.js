@@ -26,7 +26,7 @@ router.get('/script/:token', serveScript);
 // Protected/Private Config & Analytics endpoints (Can use middleware if needed, we'll keep it flexible)
 router.post('/config', saveConfig);
 router.get('/configs', getAllConfigs);
-router.get('/config/:id', getConfig);
+router.get('/config', authenticationMiddleware, getConfig);
 router.get('/leads', getLeads);
 router.get('/leads/:id', getLeadDetails);
 router.get('/leads/:id/events', getLeadEvents);
