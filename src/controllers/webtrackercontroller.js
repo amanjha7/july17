@@ -91,13 +91,12 @@ const getLeadEvents = async (req, res) => {
     }
 };
 
-// GET /app/webtracker/sessions/:sessionId/recording
 const getSessionRecording = async (req, res) => {
     try {
         const events = await webtrackerService.getSessionRecording(req.params.sessionId);
         res.status(200).json({
             session_id: req.params.sessionId,
-            events
+            recordingEvents:events
         });
     } catch (err) {
         logger.error(`Error in getSessionRecording(): ${err}`);
