@@ -33,14 +33,16 @@ const createOrUpdateConfig = async (data) => {
   })();
 </script>`;
 
-    if (config) {
-        config.website_url = website_url || config.website_url;
-        config.name = name || config.name;
-        config.generated_script = generated_script;
-        config.update_date = Date.now();
-        await config.save();
-        logger.info(`Updated existing WebtrackerConfig in DB.`);
-    } else {
+
+    // if (config) {
+    //     config.website_url = website_url || config.website_url;
+    //     config.name = name || config.name;
+    //     config.generated_script = generated_script;
+    //     config.update_date = Date.now();
+    //     await config.save();
+    //     logger.info(`Updated existing WebtrackerConfig in DB.`);
+    // } else
+{
         config = new WebtrackerConfig({
             website_url,
             pronnel_user_id,
