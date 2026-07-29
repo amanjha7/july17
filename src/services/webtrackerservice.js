@@ -17,7 +17,7 @@ const createOrUpdateConfig = async (data) => {
         ]
     });
 
-    const tracking_token = config ? config.tracking_token : uuidv4();
+    const tracking_token = uuidv4();
     const hostUrl = process.env.APP_HOST_URL || 'http://localhost:22611';
 
     // Construct HTML tracking snippet
