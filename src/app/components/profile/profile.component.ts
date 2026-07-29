@@ -137,7 +137,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.isLoadingRecording = false;
 
         // Extract events (same logic as HTML)
-        let events = res?.events || res;
+        let events = res?.recordingEvents || res;
         if (!Array.isArray(events)) {
           this.recordingEvents = [];
           this.playerReady = false;
