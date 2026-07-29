@@ -588,12 +588,20 @@ const serveScript = async (req, res) => {
         setCookie('pronnel_visitor_id', visitorId, 365);
     }
 
-    // Generate or fetch Session ID (expires after browser close / inactive session)
-    var sessionId = sessionStorage.getItem('pronnel_webtracker_session_id');
-    if (!sessionId) {
+    // Generate or fetch Session ID per browser tab (expires after browser close / inactive session)
+    // Using a temporary key to detect and separate duplicated or target="_blank" tabs
+    var tempSessionIdKey = 'pronnel_webtracker_session_id_temp';
+    var sessionId = sessionStorage.getItem(tempSessionIdKey);
+    if (sessionId) {
+        sessionStorage.removeItem(tempSessionIdKey);
+    } else {
         sessionId = 'session_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-        sessionStorage.setItem('pronnel_webtracker_session_id', sessionId);
     }
+    sessionStorage.setItem('pronnel_webtracker_session_id', sessionId);
+
+    window.addEventListener('beforeunload', function() {
+        sessionStorage.setItem(tempSessionIdKey, sessionId);
+    });
 
     var token = '${token}';
     var apiHost = '${hostUrl}';
