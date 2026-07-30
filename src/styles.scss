@@ -45,42 +45,42 @@
 }
 
 [data-theme="light"] {
-  --bg-primary: #f8f9fa;
+  --bg-primary: #f1f5f9;
   --bg-secondary: #ffffff;
-  --bg-tertiary: rgba(255, 255, 255, 0.8);
+  --bg-tertiary: #ffffff;
   --bg-elevated: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.85);
-  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-glass: #ffffff;
+  --bg-hover: rgba(59, 130, 246, 0.04);
   --bg-active: rgba(59, 130, 246, 0.08);
   --bg-input: #ffffff;
   --bg-card: #ffffff;
-  --bg-metric: #ffffff;
+  --bg-metric: #f8fafc;
 
   --text-primary: #0f172a;
-  --text-secondary: #1e293b;
+  --text-secondary: #334155;
   --text-muted: #64748b;
   --text-dim: #94a3b8;
 
-  --border-color: rgba(0, 0, 0, 0.1);
-  --border-light: rgba(0, 0, 0, 0.05);
-  --border-hover: rgba(0, 0, 0, 0.15);
-  --border-active: rgba(59, 130, 246, 0.4);
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+  --border-hover: #cbd5e1;
+  --border-active: #3b82f6;
 
   --primary: #3b82f6;
   --primary-dark: #2563eb;
-  --primary-glow: rgba(59, 130, 246, 0.3);
+  --primary-glow: rgba(59, 130, 246, 0.15);
   --primary-bg: rgba(59, 130, 246, 0.08);
   --success: #16a34a;
-  --success-glow: rgba(22, 163, 74, 0.3);
+  --success-glow: rgba(22, 163, 74, 0.15);
   --success-bg: rgba(22, 163, 74, 0.08);
   --warning: #d97706;
   --danger: #dc2626;
 
   --sidebar-bg: #ffffff;
-  --sidebar-border: rgba(0, 0, 0, 0.06);
+  --sidebar-border: #e2e8f0;
 
-  --scrollbar-thumb: rgba(0, 0, 0, 0.12);
-  --scrollbar-track: rgba(0, 0, 0, 0.04);
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-track: #f1f5f9;
 }
 
 html, body {
@@ -127,7 +127,7 @@ html, body {
 [data-theme="light"] .form-control,
 [data-theme="light"] .form-select {
   background-color: #ffffff;
-  border-color: rgba(0, 0, 0, 0.15);
+  border-color: #cbd5e1;
   color: #0f172a;
 }
 
@@ -150,11 +150,13 @@ html, body {
 }
 
 [data-theme="light"] .btn-outline-light {
-  border-color: rgba(0, 0, 0, 0.15);
-  color: #0f172a;
+  border-color: #cbd5e1;
+  color: #334155;
+  background-color: #ffffff;
 }
 
 [data-theme="light"] .btn-outline-light:hover {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.25);
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
 }
