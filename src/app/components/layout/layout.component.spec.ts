@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { ActivatedRoute } from '@angular/router';
+import { of } from 'rxjs';
+import { provideHttpClient } from '@angular/common/http';
 import { LayoutComponent } from './layout.component';
 
 describe('LayoutComponent', () => {
@@ -8,7 +10,16 @@ describe('LayoutComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ LayoutComponent ]
+      imports: [ LayoutComponent ],
+      providers: [
+        provideHttpClient(),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            queryParams: of({ token: 'test-token' })
+          }
+        }
+      ]
     })
     .compileComponents();
 

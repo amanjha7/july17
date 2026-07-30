@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { provideHttpClient } from '@angular/common/http';
 import { Channel } from './channel';
 
 describe('Channel', () => {
@@ -8,7 +8,8 @@ describe('Channel', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Channel]
+      imports: [Channel],
+      providers: [provideHttpClient()]
     })
     .compileComponents();
 

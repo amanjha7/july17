@@ -43,9 +43,9 @@
 
         <!-- Case 1: Displaying / Generating tracking script for selected website -->
         <div *ngIf="selectedWebsite" class="d-flex flex-column gap-4 flex-grow-1">
-          <div class="d-flex justify-content-between align-items-center border-bottom border-dark pb-3">
+          <div class="d-flex justify-content-between align-items-center border-bottom-theme pb-3">
             <div>
-              <h4 class="mb-1 text-white">{{ selectedWebsite.name }}</h4>
+              <h4 class="mb-1 text-primary-theme">{{ selectedWebsite.name }}</h4>
               <a [href]="selectedWebsite.website_url" target="_blank" class="text-primary text-decoration-none d-flex align-items-center gap-1">
                 {{ selectedWebsite.website_url }} <i class="bi bi-box-arrow-up-right fs-8"></i>
               </a>
@@ -64,7 +64,7 @@
           <!-- The Script block (Guarded by saving/having details) -->
           <div class="script-section">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="text-white font-monospace fs-7">DYNAMIC SNIPPET</span>
+              <span class="text-primary-theme font-monospace fs-7">DYNAMIC SNIPPET</span>
               <button class="btn btn-sm btn-outline-light d-flex align-items-center gap-2" (click)="copyScript()">
                 <i class="bi" [ngClass]="copied ? 'bi-check-all text-success' : 'bi-clipboard'"></i>
                 {{ copied ? 'Copied' : 'Copy Snippet' }}
@@ -78,13 +78,13 @@
 
           <!-- Insertion Guide -->
           <div class="guide-section p-3 border border-dark rounded">
-            <h6 class="text-white d-flex align-items-center gap-2 mb-3">
+            <h6 class="text-primary-theme d-flex align-items-center gap-2 mb-3">
               <i class="bi bi-info-circle text-primary"></i> Insertion Guide
             </h6>
             <ol class="fs-7 text-muted d-flex flex-column gap-2 mb-0 ps-3">
               <li>Copy the JavaScript snippet generated above.</li>
-              <li>Open your website's main template file (e.g., <code class="text-white">index.html</code>, layout component, or theme header).</li>
-              <li>Paste the snippet inside the <code class="text-white">&lt;head&gt;</code> tags, preferably right before the closing <code class="text-white">&lt;/head&gt;</code> tag.</li>
+              <li>Open your website's main template file (e.g., <code class="text-primary-theme">index.html</code>, layout component, or theme header).</li>
+              <li>Paste the snippet inside the <code class="text-primary-theme">&lt;head&gt;</code> tags, preferably right before the closing <code class="text-primary-theme">&lt;/head&gt;</code> tag.</li>
               <li>Publish your changes! The tracking engine will automatically begin registering visits, resolving IP geolocations, and capturing clicks instantly.</li>
             </ol>
           </div>
@@ -94,7 +94,7 @@
         <div *ngIf="!selectedWebsite" class="d-flex flex-column gap-4 flex-grow-1 justify-content-center max-w-form mx-auto">
           <div class="text-center">
             <i class="bi bi-plus-circle-dotted text-primary glow-icon-lg mb-3 d-inline-block"></i>
-            <h3 class="text-white mb-2">Configure Website Tracking</h3>
+            <h3 class="text-primary-theme mb-2">Configure Website Tracking</h3>
             <p class="text-muted fs-6">Enter your website details to generate your unique custom analytics script.</p>
           </div>
 

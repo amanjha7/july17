@@ -9,7 +9,7 @@
 
     <div class="filter-box d-flex align-items-center gap-2">
       <span class="text-muted fs-7 font-monospace">FILTER WEBSITE:</span>
-      <select class="form-select glass-dropdown text-white" [(ngModel)]="selectedToken" (change)="onWebsiteChange()">
+      <select class="form-select glass-dropdown" [(ngModel)]="selectedToken" (change)="onWebsiteChange()">
         <option *ngFor="let s of websites" [value]="s.tracking_token">{{ s.name }}</option>
       </select>
     </div>
@@ -80,9 +80,9 @@
         <div *ngIf="selectedLead" class="d-flex flex-column gap-4 flex-grow-1">
 
           <!-- Detailed Profile Header -->
-          <div class="d-flex justify-content-between align-items-start border-bottom border-dark pb-3 flex-wrap gap-3">
+          <div class="d-flex justify-content-between align-items-start border-bottom-theme pb-3 flex-wrap gap-3">
             <div>
-              <h3 class="text-white mb-1">{{ selectedLead.name || 'Anonymous Visitor' }}</h3>
+              <h3 class="profile-title mb-1">{{ selectedLead.name || 'Anonymous Visitor' }}</h3>
               <div class="d-flex flex-wrap gap-x-3 gap-y-1 text-muted fs-7">
                 <span class="d-flex align-items-center gap-1"><i class="bi bi-envelope-fill"></i> {{ selectedLead.email || 'No email associated yet' }}</span>
                 <span class="d-flex align-items-center gap-1"><i class="bi bi-telephone-fill"></i> {{ selectedLead.phone || 'No phone associated' }}</span>
@@ -100,13 +100,13 @@
             <div class="col-6 col-sm-3">
               <div class="metric-card p-3 rounded">
                 <span class="text-muted fs-8 font-monospace">IP ADDRESS</span>
-                <div class="text-white fs-6 mt-1 font-monospace">{{ selectedLead.ip }}</div>
+                <div class="metric-data fs-6 mt-1 font-monospace">{{ selectedLead.ip }}</div>
               </div>
             </div>
             <div class="col-6 col-sm-3">
               <div class="metric-card p-3 rounded">
                 <span class="text-muted fs-8 font-monospace">LOCATION</span>
-                <div class="text-white fs-6 mt-1 d-flex align-items-center gap-1">
+                <div class="metric-data fs-6 mt-1 d-flex align-items-center gap-1">
                   <i class="bi bi-compass text-primary"></i> {{ selectedLead.city || 'Unknown' }}
                 </div>
               </div>
@@ -114,13 +114,13 @@
             <div class="col-6 col-sm-3">
               <div class="metric-card p-3 rounded">
                 <span class="text-muted fs-8 font-monospace">DEVICE & OS</span>
-                <div class="text-white fs-6 mt-1">{{ selectedLead.device }} ({{ selectedLead.os }})</div>
+                <div class="metric-data fs-6 mt-1">{{ selectedLead.device }} ({{ selectedLead.os }})</div>
               </div>
             </div>
             <div class="col-6 col-sm-3">
               <div class="metric-card p-3 rounded">
                 <span class="text-muted fs-8 font-monospace">BROWSER</span>
-                <div class="text-white fs-6 mt-1">{{ selectedLead.browser }}</div>
+                <div class="metric-data fs-6 mt-1">{{ selectedLead.browser }}</div>
               </div>
             </div>
           </div>
@@ -148,16 +148,16 @@
             <!-- Timeline -->
             <div *ngIf="leadEvents.length > 0" class="timeline ps-3 position-relative d-flex flex-column gap-3">
               <div *ngFor="let ev of leadEvents" class="timeline-item position-relative">
-                <div class="timeline-marker rounded-circle"></div>
+                <div class="timeline-marker rounded-circle" [attr.data-event-type]="ev.event_type"></div>
 
                 <div class="d-flex justify-content-between align-items-start mb-1">
-                  <span class="event-title text-white font-monospace">{{ ev.event_type | uppercase }}</span>
+                  <span class="event-title font-monospace">{{ ev.event_type | uppercase }}</span>
                   <span class="text-muted fs-8 font-monospace">{{ ev.timestamp | date:'mediumTime' }}</span>
                 </div>
 
                 <div class="event-details p-3 rounded mt-2">
                   <div *ngIf="ev.event_type === 'page_view'" class="fs-7">
-                    <div class="d-flex align-items-center gap-1 mb-1 text-white-50">
+                    <div class="d-flex align-items-center gap-1 mb-1 text-secondary-dim">
                       <i class="bi bi-file-earmark-code"></i> URL Path:
                     </div>
                     <span class="text-primary font-monospace fs-8">{{ ev.properties?.url }}</span>
@@ -165,21 +165,21 @@
                   </div>
 
                   <div *ngIf="ev.event_type === 'click'" class="fs-7">
-                    <div class="d-flex align-items-center gap-1 mb-1 text-white-50">
+                    <div class="d-flex align-items-center gap-1 mb-1 text-secondary-dim">
                       <i class="bi bi-cursor-fill"></i> Clicked Element:
                     </div>
-                    <span class="text-white font-monospace">&lt;{{ ev.properties?.tag }}&gt;</span> with text <span class="text-warning">"{{ ev.properties?.text }}"</span>
-                    <div class="text-muted mt-1">Class/Id: <code class="text-white">{{ ev.properties?.classes || ev.properties?.id || 'none' }}</code></div>
+                    <span class="timeline-highlight font-monospace">&lt;{{ ev.properties?.tag }}&gt;</span> with text <span class="text-warning-highlight">"{{ ev.properties?.text }}"</span>
+                    <div class="text-muted mt-1">Class/Id: <code class="timeline-code">{{ ev.properties?.classes || ev.properties?.id || 'none' }}</code></div>
                   </div>
 
                   <div *ngIf="ev.event_type === 'form_submit'" class="fs-7">
                     <div class="d-flex align-items-center gap-1 mb-2 text-success">
                       <i class="bi bi-check2-circle"></i> Form Submission Received
                     </div>
-                    <div class="font-monospace fs-8 border-top border-dark pt-2">
+                    <div class="font-monospace fs-8 border-top-theme pt-2">
                       <div *ngFor="let item of ev.properties?.fields | keyvalue" class="d-flex justify-content-between">
                         <span class="text-muted">{{ item.key }}:</span>
-                        <span class="text-white">{{ item.value }}</span>
+                        <span class="timeline-highlight">{{ item.value }}</span>
                       </div>
                     </div>
                   </div>
@@ -218,7 +218,7 @@
           <i class="bi bi-play-circle-fill"></i>
         </div>
         <div>
-          <h5 class="text-white mb-0 fw-semibold">Session Recording Replay</h5>
+          <h5 class="player-modal-title mb-0 fw-semibold">Session Recording Replay</h5>
           <div class="d-flex align-items-center gap-3 mt-1">
             <span class="text-muted fs-8 font-monospace d-flex align-items-center gap-1">
               <i class="bi bi-person-badge"></i> {{ selectedLead?.name || selectedLead?.visitor_id || 'Unknown' }}
@@ -245,7 +245,7 @@
         </div>
       </div>
       <div class="text-center">
-        <h6 class="text-white mb-1">Loading Session Recording</h6>
+        <h6 class="player-modal-title mb-1">Loading Session Recording</h6>
         <p class="text-muted fs-7 mb-0 font-monospace">Fetching recorded events from server...</p>
       </div>
     </div>
@@ -256,7 +256,7 @@
         <i class="bi bi-camera-video-off"></i>
       </div>
       <div class="text-center">
-        <h6 class="text-white mb-1">No Session Recording Available</h6>
+        <h6 class="player-modal-title mb-1">No Session Recording Available</h6>
         <p class="text-muted fs-7 mb-0">This visitor hasn't had any session recording captured yet.</p>
         <p class="text-muted fs-8 mt-1">Make sure rrweb is enabled in your tracking script and the visitor interacts with the page.</p>
         <button class="btn btn-outline-primary btn-sm mt-3 d-flex align-items-center gap-2 mx-auto" (click)="retryPlayback()">
@@ -267,7 +267,6 @@
 
     <!-- rrweb-player container -->
     <div *ngIf="!isLoadingRecording && recordingEvents.length > 0" class="player-body flex-grow-1 position-relative">
-      <!-- <div #playerContainer class="player-container w-100 h-100"></div> -->
        <div #playerContainer
      class="player-container w-100 h-100"
      style="min-height: 400px; min-width: 400px; position: relative;">
@@ -276,7 +275,7 @@
       <!-- Success overlay that fades out -->
       <div class="player-ready-badge" *ngIf="playerReady">
         <i class="bi bi-check-circle-fill text-success"></i>
-        <span class="text-white fs-8 ms-1">Player ready</span>
+        <span class="player-modal-title fs-8 ms-1">Player ready</span>
       </div>
     </div>
 
