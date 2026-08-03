@@ -2,85 +2,46 @@
 @import "prismjs/themes/prism.css";
 
 /* ============================================================
-   CSS Custom Properties for Light/Dark Theme
+   CSS Custom Properties for Meta-Style Light Theme Only
    ============================================================ */
-:root,
-[data-theme="dark"] {
-  --bg-primary: #09090b;
-  --bg-secondary: #18181b;
-  --bg-tertiary: rgba(24, 24, 27, 0.7);
-  --bg-elevated: rgba(24, 24, 27, 0.95);
-  --bg-glass: rgba(24, 24, 27, 0.7);
-  --bg-hover: rgba(255, 255, 255, 0.04);
-  --bg-active: rgba(59, 130, 246, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.03);
-  --bg-card: rgba(255, 255, 255, 0.02);
-  --bg-metric: rgba(24, 24, 27, 0.6);
+:root {
+  /* Meta-style clean color tokens */
+  --bg-primary: #f0f2f5;        /* Canvas light grey background */
+  --bg-secondary: #ffffff;      /* Pure white for containers/panels */
+  --bg-tertiary: #f0f2f5;       /* Subtle neutral light backgrounds */
+  --bg-elevated: #ffffff;       /* Pure white elevated overlays */
+  --bg-glass: #ffffff;          /* Pure white card backgrounds (no translucent glassmorphism) */
+  --bg-hover: #f2f3f5;          /* Meta-style neutral hover gray */
+  --bg-active: #e7f3ff;         /* Meta-style blue highlight active state background */
+  --bg-input: #f0f2f5;          /* Input fields light background */
+  --bg-card: #ffffff;           /* Clean solid white card backgrounds */
+  --bg-metric: #f0f2f5;         /* Pure clean light gray background for metrics */
 
-  --text-primary: #ffffff;
-  --text-secondary: #e4e4e7;
-  --text-muted: #a1a1aa;
-  --text-dim: #71717a;
+  --text-primary: #050505;      /* Meta primary high-contrast dark text */
+  --text-secondary: #65676b;    /* Meta secondary gray text */
+  --text-muted: #8a8d91;        /* Meta muted gray text for labels/metadata */
+  --text-dim: #bcc0c4;          /* Very subtle gray text */
 
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-light: rgba(255, 255, 255, 0.04);
-  --border-hover: rgba(255, 255, 255, 0.12);
-  --border-active: rgba(59, 130, 246, 0.3);
+  --border-color: #e4e6eb;      /* Meta standard border gray */
+  --border-light: #f0f2f5;      /* Light gray border */
+  --border-hover: #ced0d4;      /* Hover gray border */
+  --border-active: #0064e0;     /* Active blue border */
 
-  --primary: #3b82f6;
-  --primary-dark: #1d4ed8;
-  --primary-glow: rgba(59, 130, 246, 0.4);
-  --primary-bg: rgba(59, 130, 246, 0.12);
-  --success: #10b981;
-  --success-glow: rgba(16, 185, 129, 0.4);
-  --success-bg: rgba(16, 185, 129, 0.1);
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --primary: #0064e0;           /* Meta Core Brand Blue */
+  --primary-dark: #0457cb;      /* Meta Dark Blue */
+  --primary-glow: rgba(0, 100, 224, 0.1);
+  --primary-bg: #e7f3ff;        /* Active blue highlight tint */
+  --success: #00a400;           /* Meta/WhatsApp Green */
+  --success-glow: rgba(0, 164, 0, 0.1);
+  --success-bg: #eef9ee;        /* Light green tint */
+  --warning: #f5c33b;           /* Warning amber */
+  --danger: #fa3e3e;            /* Danger red */
 
-  --sidebar-bg: rgba(18, 18, 20, 0.95);
-  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-bg: #ffffff;        /* Sidebar solid white background */
+  --sidebar-border: #e4e6eb;    /* Sidebar border */
 
-  --scrollbar-thumb: rgba(255, 255, 255, 0.08);
-  --scrollbar-track: rgba(0, 0, 0, 0.2);
-}
-
-[data-theme="light"] {
-  --bg-primary: #f1f5f9;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-glass: #ffffff;
-  --bg-hover: rgba(59, 130, 246, 0.04);
-  --bg-active: rgba(59, 130, 246, 0.08);
-  --bg-input: #ffffff;
-  --bg-card: #ffffff;
-  --bg-metric: #f8fafc;
-
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  --text-dim: #94a3b8;
-
-  --border-color: #e2e8f0;
-  --border-light: #f1f5f9;
-  --border-hover: #cbd5e1;
-  --border-active: #3b82f6;
-
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --primary-glow: rgba(59, 130, 246, 0.15);
-  --primary-bg: rgba(59, 130, 246, 0.08);
-  --success: #16a34a;
-  --success-glow: rgba(22, 163, 74, 0.15);
-  --success-bg: rgba(22, 163, 74, 0.08);
-  --warning: #d97706;
-  --danger: #dc2626;
-
-  --sidebar-bg: #ffffff;
-  --sidebar-border: #e2e8f0;
-
-  --scrollbar-thumb: #cbd5e1;
-  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #bcc0c4;
+  --scrollbar-track: #f0f2f5;
 }
 
 html, body {
@@ -89,7 +50,6 @@ html, body {
   color: var(--text-secondary) !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   margin: 0;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Importing Bootstrap SCSS file. */
@@ -99,7 +59,6 @@ html, body {
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-  transition: scrollbar-color 0.3s ease;
 }
 
 *::-webkit-scrollbar {
@@ -110,53 +69,58 @@ html, body {
 *::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 4px;
-  transition: background 0.3s ease;
 }
 
 *::-webkit-scrollbar-track {
   background: var(--scrollbar-track);
   border-radius: 4px;
-  transition: background 0.3s ease;
 }
 
-/* Light mode overrides for Bootstrap components */
-[data-theme="light"] .progress {
-  background-color: rgba(0, 0, 0, 0.06) !important;
+/* Form inputs & component overrides for Meta styling */
+.progress {
+  background-color: #e4e6eb !important;
+  border-radius: 4px;
 }
 
-[data-theme="light"] .form-control,
-[data-theme="light"] .form-select {
-  background-color: #ffffff;
-  border-color: #cbd5e1;
-  color: #0f172a;
+.form-control,
+.form-select {
+  background-color: var(--bg-input) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  border-radius: 6px !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease-in-out;
 }
 
-[data-theme="light"] .form-control:focus,
-[data-theme="light"] .form-select:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+.form-control:focus,
+.form-select:focus {
+  background-color: #ffffff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(0, 100, 224, 0.15) !important;
 }
 
-[data-theme="light"] .alert-success {
-  background: rgba(22, 163, 74, 0.08);
-  border-color: rgba(22, 163, 74, 0.2);
-  color: #15803d;
+.alert-success {
+  background: var(--success-bg) !important;
+  border-color: rgba(0, 164, 0, 0.2) !important;
+  color: #007f00 !important;
+  border-radius: 8px;
 }
 
-[data-theme="light"] .alert-danger {
-  background: rgba(220, 38, 38, 0.08);
-  border-color: rgba(220, 38, 38, 0.2);
-  color: #b91c1c;
+.alert-danger {
+  background: rgba(250, 62, 62, 0.08) !important;
+  border-color: rgba(250, 62, 62, 0.2) !important;
+  color: #c92c2c !important;
+  border-radius: 8px;
 }
 
-[data-theme="light"] .btn-outline-light {
-  border-color: #cbd5e1;
-  color: #334155;
-  background-color: #ffffff;
+.btn-outline-light {
+  border-color: var(--border-color) !important;
+  color: var(--text-secondary) !important;
+  background-color: #ffffff !important;
 }
 
-[data-theme="light"] .btn-outline-light:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
-  color: #0f172a;
+.btn-outline-light:hover {
+  background: #f2f3f5 !important;
+  border-color: var(--border-hover) !important;
+  color: var(--text-primary) !important;
 }

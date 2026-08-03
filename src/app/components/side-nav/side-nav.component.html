@@ -46,12 +46,5 @@
       <span class="pulse-indicator"></span>
       <span class="text-muted fs-7">Service Online</span>
     </div>
-
-    <!-- Theme Toggle -->
-    <button class="theme-toggle-btn w-100 d-flex align-items-center justify-content-center gap-2" (click)="toggleTheme()"
-            [attr.aria-label]="(theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode')">
-      <i class="bi" [ngClass]="theme() === 'dark' ? 'bi-sun-fill' : 'bi-moon-fill'"></i>
-      <span class="fs-7">{{ theme() === 'dark' ? 'Light Mode' : 'Dark Mode' }}</span>
-    </button>
   </div>
 </div>

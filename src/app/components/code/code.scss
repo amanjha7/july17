@@ -6,75 +6,74 @@
   .title-glow {
     color: var(--text-primary);
     font-weight: 700;
-    text-shadow: 0 0 40px var(--primary-glow);
+    font-size: 1.75rem;
+    letter-spacing: -0.5px;
   }
 
   .glass-dropdown {
-    background: var(--bg-secondary);
+    background: #ffffff;
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     border-radius: 8px;
     padding: 6px 12px;
     outline: none;
     cursor: pointer;
+    font-weight: 600;
 
     option {
-      background: var(--bg-secondary);
+      background: #ffffff;
       color: var(--text-primary);
     }
   }
 
   .glass-metric {
-    background: var(--bg-metric);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
+    border-radius: 12px;
     min-height: 140px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    backdrop-filter: blur(8px);
-    transition: transform 0.2s, border-color 0.2s, background-color 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.2s ease;
 
     &:hover {
-      transform: translateY(-2px);
-      border-color: var(--border-active);
+      transform: translateY(-1px);
+      border-color: var(--border-hover);
     }
 
     .metric-label {
-      color: var(--text-muted);
-      font-weight: 600;
-      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      font-weight: 700;
+      letter-spacing: 0.3px;
     }
 
     .metric-value {
       font-weight: 800;
-      font-size: 1.8rem;
+      font-size: 2rem;
       color: var(--text-primary);
+      letter-spacing: -0.5px;
     }
   }
 
   .glass-panel {
-    background: var(--bg-glass);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-    backdrop-filter: blur(8px);
-    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
   .section-title {
     color: var(--text-primary);
     font-size: 1rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    font-weight: 700;
+    letter-spacing: -0.1px;
   }
 
   .text-success-glow {
     color: var(--success);
-    text-shadow: 0 0 10px var(--success-glow);
   }
 
   .text-primary-glow {
     color: var(--primary);
-    text-shadow: 0 0 10px var(--primary-glow);
   }
 
   .location-list {
@@ -84,6 +83,7 @@
     .location-item {
       .location-name {
         color: var(--text-primary);
+        font-weight: 600;
       }
 
       .progress {
@@ -96,9 +96,9 @@
 
   .funnel-container {
     .funnel-step {
-      background: var(--bg-card);
+      background: #fcfcfd;
       border: 1px solid var(--border-color) !important;
-      transition: all 0.3s ease;
+      transition: all 0.2s ease;
 
       .funnel-badge {
         display: inline-flex;
@@ -113,11 +113,11 @@
 
       .step-name {
         color: var(--text-primary);
-        font-weight: 600;
+        font-weight: 700;
       }
 
       .step-desc {
-        color: var(--text-muted);
+        color: var(--text-secondary);
       }
 
       .text-primary-theme {
@@ -127,13 +127,13 @@
 
     .bg-success-theme {
       background: var(--success-bg) !important;
-      border-color: var(--success-glow) !important;
+      border-color: rgba(0, 164, 0, 0.2) !important;
     }
   }
 
   .bg-banner-theme {
-    background: var(--bg-card);
-    transition: background-color 0.3s ease;
+    background: #f5f6f7;
+    transition: background-color 0.2s ease;
   }
 
   .border-theme {
@@ -146,8 +146,6 @@
     height: 6px;
     background-color: var(--success);
     border-radius: 50%;
-    box-shadow: 0 0 0 0 var(--success-glow);
-    animation: pulse 1.6s infinite;
   }
 
   .fs-7 {
@@ -156,20 +154,5 @@
 
   .fs-8 {
     font-size: 0.75rem;
-  }
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-  }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
   }
 }
